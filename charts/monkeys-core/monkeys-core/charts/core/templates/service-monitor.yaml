@@ -1,0 +1,21 @@
+{{ $currentNamespace := .Release.Namespace }}
+
+{{- range .Values.serviceMonitors }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- toYaml .selector.matchLabels | nindent 6 }}
+  endpoints:
+    {{- toYaml .endpoints | nindent 4 }}
+  namespaceSelector:
+    matchNames:
+      - {{ $currentNamespace }}
+---
+{{- end }}
