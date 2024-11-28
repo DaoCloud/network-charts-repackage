@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://kubernetes-sigs.github.io/metrics-server
 export REPO_NAME=metrics-server
 export CHART_NAME=metrics-server
-export VERSION=3.11.0
+export VERSION=3.12.2
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
