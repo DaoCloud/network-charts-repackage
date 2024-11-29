@@ -10,10 +10,10 @@ maintainers:
 name: docker-registry
 sources:
   - https://github.com/docker/distribution-library-image
-version: 2.2.2
+version: 2.2.3
 dependencies:
   - name: docker-registry
-    version: "2.2.2"
+    version: "2.2.3"
     repository: "https://helm.twun.io"
 
 keywords:
