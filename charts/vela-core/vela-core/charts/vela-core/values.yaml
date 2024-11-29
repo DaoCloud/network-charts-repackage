@@ -49,7 +49,7 @@ imageRegistry: ""
 ## @param image.pullPolicy Image pull policy
 image:
   repository: oamdev/vela-core
-  tag: v1.9.11
+  tag: v1.9.13
   pullPolicy: Always
 
 ## @param resources.limits.cpu KubeVela controller's cpu limit
