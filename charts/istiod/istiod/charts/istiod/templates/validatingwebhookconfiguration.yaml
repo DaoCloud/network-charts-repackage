@@ -1,3 +1,5 @@
+# Created if this is not a remote istiod, OR if it is and is also a config cluster
+{{- if or (and .Values.istiodRemote.enabled .Values.global.configCluster) (not .Values.istiodRemote.enabled) }}
 {{- if .Values.global.configValidation }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -7,7 +9,9 @@ metadata:
     app: istiod
     release: {{ .Release.Name }}
     istio: istiod
-    istio.io/rev: {{ .Values.revision | default "default" }}
+    istio.io/rev: {{ .Values.revision | default "default" | quote }}
+    app.kubernetes.io/name: "istiod"
+    {{- include "istio.labels" . | nindent 4 }}
 webhooks:
   # Webhook handling per-revision validation. Mostly here so we can determine whether webhooks
   # are rejecting invalid configs on a per-revision basis.
@@ -22,6 +26,9 @@ webhooks:
         namespace: {{ .Values.global.istioNamespace }}
         path: "/validate"
       {{- end }}
+      {{- if .Values.base.validationCABundle }}
+      caBundle: "{{ .Values.base.validationCABundle }}"
+      {{- end }}
     rules:
       - operations:
           - CREATE
@@ -31,19 +38,21 @@ webhooks:
           - networking.istio.io
           - telemetry.istio.io
           - extensions.istio.io
-          {{- if .Values.base.validateGateway }}
-          - gateway.networking.k8s.io
-          {{- end }}
         apiVersions:
           - "*"
         resources:
           - "*"
+    {{- if .Values.base.validationCABundle }}
+    # Disable webhook controller in Pilot to stop patching it
+    failurePolicy: Fail
+    {{- else }}
     # Fail open until the validation webhook is ready. The webhook controller
     # will update this to `Fail` and patch in the `caBundle` when the webhook
     # endpoint is ready.
     failurePolicy: Ignore
+    {{- end }}
     sideEffects: None
-    admissionReviewVersions: ["v1beta1", "v1"]
+    admissionReviewVersions: ["v1"]
     objectSelector:
       matchExpressions:
         - key: istio.io/rev
@@ -55,4 +64,5 @@ webhooks:
           - "{{ .Values.revision }}"
           {{- end }}
 ---
+{{- end }}
 {{- end }}
