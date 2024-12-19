@@ -1,0 +1,16 @@
+{{- if .Values.topoDiscovery.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: topo-worker-service
+  labels:
+    app: topo-worker
+spec:
+  selector:
+    app: topo-worker
+  ports:
+  - name: topo-worker-port
+    port: 9002
+    targetPort: {{ .Values.topoDiscovery.worker.metricsPort }}
+    protocol: TCP
+{{- end }}

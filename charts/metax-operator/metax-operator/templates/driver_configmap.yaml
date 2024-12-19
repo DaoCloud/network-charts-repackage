@@ -1,0 +1,14 @@
+{{- $defaultConfig := dict "nodes" (dict "sample-node" (dict "vfnum" 4) "sample-node2" (dict "vfnum" 2) ) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: driver-config
+  namespace: {{ .Release.Namespace }}
+data:
+  node-vfnums: |
+    {{- toYaml .Values.driver.vfnumsConfig | default $defaultConfig | nindent 4 }}
+  module-params: |
+    {{- toYaml .Values.driver.moduleParams | nindent 4 }}
+  node-module-params: |
+    {{- toYaml .Values.driver.nodeModuleParams | nindent 4 }}

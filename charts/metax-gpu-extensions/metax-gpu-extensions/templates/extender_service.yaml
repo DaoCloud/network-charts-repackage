@@ -1,0 +1,13 @@
+{{- if .Values.deployExtenderGPUAware}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpu-aware-service
+spec:
+  selector:
+    app: gpu-aware-ds
+  ports:
+  - name: gpu-aware-port
+    port: 8080
+    targetPort: 8080
+{{- end }}

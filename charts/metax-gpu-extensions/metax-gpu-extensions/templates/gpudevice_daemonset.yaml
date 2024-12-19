@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-device
+  labels:
+    {{- include "GPUExt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "GPUExt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: gpu-device
+        {{- include "GPUExt.selectorLabels" . | nindent 8 }}
+    spec:
+      nodeSelector:
+        {{ .Values.domain }}/gpu.installed: "true"
+        {{ .Values.domain }}/driver.ready: "true"
+      serviceAccountName: {{ include "GPUExt.serviceAccountName" . }}
+      serviceAccount:     {{ include "GPUExt.serviceAccountName" . }}
+      priorityClassName:  system-node-critical
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: gpu-device-plugin
+        securityContext:
+          privileged: true
+        image: {{ .Values.registry }}/{{ include "GPUExt.deviceImage" . }}
+        imagePullPolicy: {{ default .Values.pullPolicy ((.Values.gpuDevice).image).pullPolicy }}
+        command: ['/k8s-device-plugin']
+        args:
+        - --healthy-interval={{ .Values.gpuDevice.healthyInterval }}
+        - --log-file=/var/log/gpu-device.log
+        - --log-level={{ default .Values.log.level ((.Values.gpuDevice).log).level }}
+        - --log-format={{ default .Values.log.format ((.Values.gpuDevice).log).format }}
+        - --log-rotation={{ default .Values.log.rotationTime ((.Values.gpuDevice).log).rotationTime }}
+        - --log-max-age={{ default .Values.log.maxAge ((.Values.gpuDevice).log).maxAge }}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+          - name: device-plugin-sock
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: device-plugin-log
+            mountPath: /var/log
+          - name: pod-resources-sock
+            mountPath: /var/lib/kubelet/pod-resources
+          - name: run
+            mountPath: /run/k8s-device-plugin
+          - name: vendor-config
+            mountPath: /etc/gpu-vendor.yaml
+            subPath: gpu-vendor.yaml
+      volumes:
+      - name: device-plugin-sock
+        hostPath:
+          path: /var/lib/kubelet/device-plugins
+      - name: device-plugin-log
+        hostPath:
+          path: {{ default .Values.log.dir ((.Values.gpuDevice).log).dir }}
+          type: DirectoryOrCreate
+      - name: run
+        hostPath:
+          path: {{ .Values.runDir }}
+      - name: pod-resources-sock
+        hostPath:
+          path: /var/lib/kubelet/pod-resources
+      - name: vendor-config
+        configMap:
+          name: vendor-config

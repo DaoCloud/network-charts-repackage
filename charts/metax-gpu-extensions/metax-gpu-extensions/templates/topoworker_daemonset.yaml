@@ -1,0 +1,56 @@
+{{- if .Values.topoDiscovery.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: topo-worker
+  labels:
+    {{- include "GPUExt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "GPUExt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: topo-worker
+        {{- include "GPUExt.selectorLabels" . | nindent 8 }}
+    spec:
+      nodeSelector:
+        {{ .Values.domain }}/gpu.installed: "true"
+        {{ .Values.domain }}/driver.ready: "true"
+      serviceAccountName: {{ include "GPUExt.serviceAccountName" . }}
+      serviceAccount:     {{ include "GPUExt.serviceAccountName" . }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: topo-worker
+        image: {{ .Values.registry }}/{{ include "GPUExt.topoWorkerImage" . }}
+        imagePullPolicy: {{ default .Values.pullPolicy ((.Values.topoDiscovery.worker).image).pullPolicy }}
+        command: ['/usr/local/topo-worker/topo-worker' ]
+        args:
+        - --log-file=/var/log/topo-worker.log
+        - --log-level={{ default .Values.log.level ((.Values.topoDiscovery.worker).log).level }}
+        - --log-format={{ default .Values.log.format ((.Values.topoDiscovery.worker).log).format }}
+        - --server-address=topo-master-service:{{ .Values.topoDiscovery.rpcServerPort }}
+        - --metrics-address={{ .Values.topoDiscovery.worker.metricsPort }}
+        {{ if eq .Values.topoDiscovery.mode "dragonfly" }}
+        {{ include "GPUExt.topoWorkerDfCmd" . | nindent 8 }}
+        {{- end }}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: log
+          mountPath: /var/log
+      volumes:
+      - name: log
+        hostPath:
+          path: {{ default .Values.log.dir ((.Values.topoDiscovery.worker).log).dir }}
+          type: DirectoryOrCreate
+{{- end }}

@@ -1,0 +1,86 @@
+# Default values for gpu-extenstions.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+domain: metax-tech.com
+registry: release.daocloud.io
+pullPolicy: IfNotPresent
+runDir: /run/metax
+deployExtenderGPUAware: false
+log:
+  dir: /var/log/metax
+  level: info
+  format: json
+  rotationTime: 1w
+  maxAge: 26w
+gpuDevice:
+  healthyInterval: 5
+  log:
+  image:
+    name: metax/gpu-device
+    version: 0.9.0
+gpuLabel:
+  log:
+  image:
+    name: metax/gpu-label
+    version: 0.9.0
+topoDiscovery:
+  enabled: false
+  # config/dragonfly
+  mode: "config"
+  dragonfly:
+    nodeNumber: 2
+    enableTraining: false
+  rpcServerPort: 10001
+  master:
+    serverPort: 9001
+    log:
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+                - key: "node-role.kubernetes.io/master"
+                  operator: In
+                  values: [""]
+          - weight: 1
+            preference:
+              matchExpressions:
+                - key: "node-role.kubernetes.io/control-plane"
+                  operator: In
+                  values: [""]
+    image:
+      name: metax/topo-master
+      version: 0.9.0
+  worker:
+    metricsPort: 9002
+    image:
+      name: metax/topo-worker
+      version: 0.9.0
+gpuAware:
+  scoreWeight: "1.0"
+  lossWeight: "0.5"
+  name: gpu-aware
+  image:
+    name: metax/gpu-aware
+    version: 0.9.0
+# The name of the service account to use.
+# If not set or empty, a name is generated using the fullname template
+serviceAccountName: ""
+tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Equal"
+    value: ""
+    effect: "NoSchedule"
+image:
+  registry: release.daocloud.io

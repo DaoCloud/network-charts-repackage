@@ -1,0 +1,270 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "deployExtenderGPUAware": {
+            "type": "boolean"
+        },
+        "domain": {
+            "type": "string"
+        },
+        "gpuAware": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "lossWeight": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "scoreWeight": {
+                    "type": "string"
+                }
+            }
+        },
+        "gpuDevice": {
+            "type": "object",
+            "properties": {
+                "healthyInterval": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                }
+            }
+        },
+        "gpuLabel": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                }
+            }
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "registry": {
+                    "type": "string"
+                }
+            }
+        },
+        "log": {
+            "type": "object",
+            "properties": {
+                "dir": {
+                    "type": "string"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "maxAge": {
+                    "type": "string"
+                },
+                "rotationTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "pullPolicy": {
+            "type": "string"
+        },
+        "registry": {
+            "type": "string"
+        },
+        "runDir": {
+            "type": "string"
+        },
+        "serviceAccountName": {
+            "type": "string"
+        },
+        "tolerations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "effect": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "operator": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "topoDiscovery": {
+            "type": "object",
+            "properties": {
+                "dragonfly": {
+                    "type": "object",
+                    "properties": {
+                        "enableTraining": {
+                            "type": "boolean"
+                        },
+                        "nodeNumber": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "master": {
+                    "type": "object",
+                    "properties": {
+                        "affinity": {
+                            "type": "object",
+                            "properties": {
+                                "nodeAffinity": {
+                                    "type": "object",
+                                    "properties": {
+                                        "preferredDuringSchedulingIgnoredDuringExecution": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "preference": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "matchExpressions": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "key": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "operator": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "values": {
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "weight": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "version": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "log": {
+                            "type": "null"
+                        },
+                        "serverPort": {
+                            "type": "integer"
+                        },
+                        "tolerations": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "effect": {
+                                        "type": "string"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "operator": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "rpcServerPort": {
+                    "type": "integer"
+                },
+                "worker": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "version": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "metricsPort": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

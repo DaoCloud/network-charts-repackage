@@ -1,0 +1,9 @@
+{{- if .Values.topoDiscovery.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topo-master-config
+data:
+  nodegroup: |
+    group:
+{{- end }}

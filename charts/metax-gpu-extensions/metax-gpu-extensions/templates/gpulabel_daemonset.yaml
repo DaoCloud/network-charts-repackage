@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-label
+  labels:
+    {{- include "GPUExt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "GPUExt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: gpu-label
+        {{- include "GPUExt.selectorLabels" . | nindent 8 }}
+    spec:
+      priorityClassName:  system-node-critical
+      serviceAccountName: {{ include "GPUExt.serviceAccountName" . }}
+      serviceAccount:     {{ include "GPUExt.serviceAccountName" . }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: gpu-label-generator
+        securityContext:
+          privileged: true
+        image: {{ .Values.registry }}/{{ include "GPUExt.labelImage" . }}
+        imagePullPolicy: {{ default .Values.pullPolicy ((.Values.gpuLabel).image).pullPolicy }}
+        command: ['/label-generator' ]
+        args:
+        - --log-file=/var/log/gpu-label.log
+        - --log-level={{ default .Values.log.level ((.Values.gpuLabel).log).level }}
+        - --log-format={{ default .Values.log.format ((.Values.gpuLabel).log).format }}
+        - --log-rotation={{ default .Values.log.rotationTime ((.Values.gpuDevice).log).rotationTime }}
+        - --log-max-age={{ default .Values.log.maxAge ((.Values.gpuDevice).log).maxAge }}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: run
+          mountPath: {{ .Values.runDir }}
+        - name: log
+          mountPath: /var/log
+        - name: vendor-config
+          mountPath: /etc/gpu-vendor.yaml
+          subPath: gpu-vendor.yaml
+      volumes:
+      - name: run
+        hostPath:
+          path: {{ .Values.runDir }}
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: {{ default .Values.log.dir ((.Values.gpuLabel).log).dir }}
+          type: DirectoryOrCreate
+      - name: vendor-config
+        configMap:
+          name: vendor-config
