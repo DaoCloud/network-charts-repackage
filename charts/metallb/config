@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://metallb.github.io/metallb
 export REPO_NAME=metallb
 export CHART_NAME=metallb
-export VERSION=0.14.8
+export VERSION=0.14.9
 # pr, issue, none
 export UPGRADE_METHOD=pr
 export UPGRADE_REVIWER=cyclinder
