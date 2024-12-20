@@ -36,7 +36,7 @@ metallb:
     # to expose the metrics securely. If not present, a self signed
     # certificate to be used.
     controllerMetricsTLSSecret: ""
-    # prometheus doens't have the permission to scrape all namespaces so we give it permission to scrape metallb's one
+    # prometheus doesn't have the permission to scrape all namespaces so we give it permission to scrape metallb's one
     rbacPrometheus: false
     # the service account used by prometheus
     # required when " .Values.prometheus.rbacPrometheus == true " and " .Values.prometheus.podMonitor.enabled=true or prometheus.serviceMonitor.enabled=true "
@@ -54,7 +54,7 @@ metallb:
     podMonitor:
       # enable support for Prometheus Operator
       enabled: false
-      # optional additionnal labels for podMonitors
+      # optional additional labels for podMonitors
       additionalLabels: {}
       # optional annotations for podMonitors
       annotations: {}
@@ -123,7 +123,7 @@ metallb:
     prometheusRule:
       # enable alertmanager alerts
       enabled: false
-      # optional additionnal labels for prometheusRules
+      # optional additional labels for prometheusRules
       additionalLabels:
         operator.insight.io/managed-by: insight
       # optional annotations for prometheusRules
@@ -142,7 +142,7 @@ metallb:
       addressPoolExhausted:
         enabled: true
         labels:
-          severity: alert
+          severity: critical
       addressPoolUsage:
         enabled: true
         thresholds:
@@ -154,12 +154,12 @@ metallb:
               severity: warning
           - percent: 95
             labels:
-              severity: alert
+              severity: critical
       # MetalLBBGPSessionDown
       bgpSessionDown:
         enabled: true
         labels:
-          severity: alert
+          severity: critical
       extraAlerts: []
   # controller contains configuration specific to the MetalLB cluster
   # controller.
@@ -171,7 +171,7 @@ metallb:
     # webhookMode: enabled
     image:
       repository: metallb/controller
-      tag: v0.14.8
+      tag: v0.14.9
       pullPolicy:
       registry: quay.m.daocloud.io
     ## @param controller.updateStrategy.type Metallb controller deployment strategy type.
@@ -250,7 +250,7 @@ metallb:
     ignoreExcludeLB: false
     image:
       repository: metallb/speaker
-      tag: v0.14.8
+      tag: v0.14.9
       pullPolicy:
       registry: quay.m.daocloud.io
     ## @param speaker.updateStrategy.type Speaker daemonset strategy type

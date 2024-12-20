@@ -1,6 +1,6 @@
 # metallb
 
-![Version: 0.14.8](https://img.shields.io/badge/Version-0.14.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.14.8](https://img.shields.io/badge/AppVersion-v0.14.8-informational?style=flat-square)
+![Version: 0.14.9](https://img.shields.io/badge/Version-0.14.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.14.9](https://img.shields.io/badge/AppVersion-v0.14.9-informational?style=flat-square)
 
 A network load-balancer implementation for Kubernetes using standard routing protocols
 
@@ -16,8 +16,8 @@ Kubernetes: `>= 1.19.0-0`
 
 | Repository | Name | Version |
 |------------|------|---------|
-|  | crds | 0.14.8 |
-| https://metallb.github.io/frr-k8s | frr-k8s | 0.0.14 |
+|  | crds | 0.14.9 |
+| https://metallb.github.io/frr-k8s | frr-k8s | 0.0.16 |
 
 ## Values
 
@@ -79,17 +79,17 @@ Kubernetes: `>= 1.19.0-0`
 | prometheus.podMonitor.relabelings | list | `[]` |  |
 | prometheus.prometheusRule.additionalLabels | object | `{}` |  |
 | prometheus.prometheusRule.addressPoolExhausted.enabled | bool | `true` |  |
-| prometheus.prometheusRule.addressPoolExhausted.labels.severity | string | `"alert"` |  |
+| prometheus.prometheusRule.addressPoolExhausted.labels.severity | string | `"critical"` |  |
 | prometheus.prometheusRule.addressPoolUsage.enabled | bool | `true` |  |
 | prometheus.prometheusRule.addressPoolUsage.thresholds[0].labels.severity | string | `"warning"` |  |
 | prometheus.prometheusRule.addressPoolUsage.thresholds[0].percent | int | `75` |  |
 | prometheus.prometheusRule.addressPoolUsage.thresholds[1].labels.severity | string | `"warning"` |  |
 | prometheus.prometheusRule.addressPoolUsage.thresholds[1].percent | int | `85` |  |
-| prometheus.prometheusRule.addressPoolUsage.thresholds[2].labels.severity | string | `"alert"` |  |
+| prometheus.prometheusRule.addressPoolUsage.thresholds[2].labels.severity | string | `"critical"` |  |
 | prometheus.prometheusRule.addressPoolUsage.thresholds[2].percent | int | `95` |  |
 | prometheus.prometheusRule.annotations | object | `{}` |  |
 | prometheus.prometheusRule.bgpSessionDown.enabled | bool | `true` |  |
-| prometheus.prometheusRule.bgpSessionDown.labels.severity | string | `"alert"` |  |
+| prometheus.prometheusRule.bgpSessionDown.labels.severity | string | `"critical"` |  |
 | prometheus.prometheusRule.configNotLoaded.enabled | bool | `true` |  |
 | prometheus.prometheusRule.configNotLoaded.labels.severity | string | `"warning"` |  |
 | prometheus.prometheusRule.enabled | bool | `false` |  |
