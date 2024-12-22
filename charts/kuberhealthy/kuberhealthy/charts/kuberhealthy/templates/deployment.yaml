@@ -3,9 +3,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "kuberhealthy.name" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
   labels:
     app: {{ template "kuberhealthy.name" . }}
+    {{- with .Values.deployment.customLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -26,6 +29,9 @@ spec:
       {{- end }}
       labels:
         app: {{ template "kuberhealthy.name" . }}
+        {{- with .Values.pod.customLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       volumes:
         - name: config-volume
@@ -92,6 +98,10 @@ spec:
           runAsUser: {{ .Values.securityContext.runAsUser }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+          {{- if .Values.securityContext.seccompProfile }}
+          seccompProfile:
+            {{- toYaml .Values.securityContext.seccompProfile | nindent 12 }}
+          {{- end }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
           failureThreshold: 3
@@ -114,13 +124,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          {{- if .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
-          - name: KH_EXTERNAL_REPORTING_URL
-            value: {{ .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
-          {{- end }}
-          {{- if .Values.deployment.env.CHECK_REAPER_RUN_INTERVAL }}
-          - name: CHECK_REAPER_RUN_INTERVAL
-            value: {{ .Values.deployment.env.CHECK_REAPER_RUN_INTERVAL }}
+          {{- range $key, $value := .Values.deployment.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
           {{- end }}
         readinessProbe:
           failureThreshold: 3

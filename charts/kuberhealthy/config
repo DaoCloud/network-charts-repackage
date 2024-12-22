@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://kuberhealthy.github.io/kuberhealthy/helm-repos
 export REPO_NAME=kuberhealthy
 export CHART_NAME=kuberhealthy
-export VERSION=90
+export VERSION=105
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
