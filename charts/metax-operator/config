@@ -1,0 +1,16 @@
+export USE_OPENSOURCE_CHART=false
+export BUILD_SELF=custom.sh
+export MX_VERSION=0.9.0
+
+# pr, issue, none
+export UPGRADE_METHOD=pr
+export UPGRADE_REVIWER=lengrongfu
+export TEST_ASSIGNER=lengrongfu
+
+# push to daocloud repo
+export DAOCLOUD_REPO_PROJECT=addon
+
+# optional, for wrapper chart
+# metax-operator version
+export CUSTOM_VERSION=${VERSION}
+

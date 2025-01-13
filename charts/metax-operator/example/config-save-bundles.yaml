@@ -1,0 +1,19 @@
+source:
+  repo:
+    kind: HARBOR # or as any other supported Helm Chart repository kinds
+    url: https://release.daocloud.io/chartrepo/addon
+    auth: ## charts仓库用户名密码
+      username: admin
+      password: x3OFzuW0tpGYFDAr63wRx81dqms=
+  containers:
+#    url: https://release.daocloud.io
+    auth:
+      registry: release.daocloud.io
+      username: "admin"
+      password: ""
+target:
+  # The important bit. This instructs charts-syncer to store intermediate bundles in the given directory
+  intermediateBundlesPath: addon
+
+charts:
+  - name: metax-operator

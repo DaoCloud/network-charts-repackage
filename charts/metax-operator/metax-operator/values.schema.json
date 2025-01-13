@@ -1,0 +1,408 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "controller": {
+            "type": "object",
+            "properties": {
+                "affinity": {
+                    "type": "object",
+                    "properties": {
+                        "nodeAffinity": {
+                            "type": "object",
+                            "properties": {
+                                "preferredDuringSchedulingIgnoredDuringExecution": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "preference": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "matchExpressions": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "key": {
+                                                                    "type": "string"
+                                                                },
+                                                                "operator": {
+                                                                    "type": "string"
+                                                                },
+                                                                "values": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "weight": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "fullnameOverride": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "imagePullSecrets": {
+                    "type": "array"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nameOverride": {
+                    "type": "string"
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "podAnnotations": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "replicaCount": {
+                    "type": "integer"
+                },
+                "securityContext": {
+                    "type": "object"
+                },
+                "tolerations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "effect": {
+                                "type": "string"
+                            },
+                            "key": {
+                                "type": "string"
+                            },
+                            "operator": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "dataExporter": {
+            "type": "object",
+            "properties": {
+                "deploy": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "port": {
+                            "type": "integer"
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "driver": {
+            "type": "object",
+            "properties": {
+                "deployPolicy": {
+                    "type": "string"
+                },
+                "fwEnableVirt": {
+                    "type": "boolean"
+                },
+                "fwUpgradePolicy": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                },
+                "moduleParams": {
+                    "type": "null"
+                },
+                "nodeModuleParams": {
+                    "type": "null"
+                },
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "upgradePolicy": {
+                    "type": "object",
+                    "properties": {
+                        "Fallback": {
+                            "type": "string"
+                        },
+                        "enableRollout": {
+                            "type": "boolean"
+                        },
+                        "maxFailureThreshold": {
+                            "type": "integer"
+                        },
+                        "maxParallel": {
+                            "type": "string"
+                        },
+                        "maxUnavailable": {
+                            "type": "string"
+                        },
+                        "pause": {
+                            "type": "boolean"
+                        },
+                        "upgradeSteps": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "pauseDuration": {
+                                        "type": "integer"
+                                    },
+                                    "replicas": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "vfnumsConfig": {
+                    "type": "object",
+                    "properties": {
+                        "nodes": {
+                            "type": "object",
+                            "properties": {
+                                "sample-node": {
+                                    "type": "object",
+                                    "properties": {
+                                        "vfnum": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "sample-node2": {
+                                    "type": "object",
+                                    "properties": {
+                                        "vfnum": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "gpuDevice": {
+            "type": "object",
+            "properties": {
+                "healthyInterval": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                }
+            }
+        },
+        "gpuLabel": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                }
+            }
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "registry": {
+                    "type": "string"
+                }
+            }
+        },
+        "log": {
+            "type": "object",
+            "properties": {
+                "dir": {
+                    "type": "string"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "maxAge": {
+                    "type": "string"
+                },
+                "rotationTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "maca": {
+            "type": "object",
+            "properties": {
+                "cleanupConfig": {
+                    "type": "object",
+                    "properties": {
+                        "cleanupPolicy": {
+                            "type": "string"
+                        },
+                        "threshold": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                },
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "images": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "registry": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "pullPolicy": {
+            "type": "string"
+        },
+        "registry": {
+            "type": "string"
+        },
+        "runtime": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "log": {
+                    "type": "null"
+                }
+            }
+        },
+        "serviceAccount": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object"
+                },
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

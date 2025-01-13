@@ -1,0 +1,9 @@
+{{- if .Values.deployExtenderGPUAware }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-aware-weight
+data:
+  score: "{{ .Values.gpuAware.scoreWeight }}"
+  loss: "{{ .Values.gpuAware.lossWeight }}"
+{{- end }}

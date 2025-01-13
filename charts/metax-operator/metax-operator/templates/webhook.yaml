@@ -1,0 +1,27 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: upgrade-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: upgrade-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-metax-v1alpha1-upgrade
+  failurePolicy: Fail
+  name: validateupgrade.metax-tech.com
+  rules:
+  - apiGroups:
+    - gpu.metax-tech.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - clusteroperators
+  sideEffects: None

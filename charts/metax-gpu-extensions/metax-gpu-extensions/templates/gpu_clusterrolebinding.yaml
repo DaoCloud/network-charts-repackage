@@ -1,0 +1,12 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "GPUExt.roleBindingName" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "GPUExt.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "GPUExt.roleName" . }}
+  apiGroup: rbac.authorization.k8s.io

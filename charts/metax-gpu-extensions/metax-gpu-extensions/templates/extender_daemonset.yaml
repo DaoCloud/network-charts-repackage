@@ -1,0 +1,51 @@
+{{- if .Values.deployExtenderGPUAware }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-aware-ds
+  labels:
+    {{- include "GPUExt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "GPUExt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: gpu-aware-ds
+        {{- include "GPUExt.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.gpuAware.name }}
+      initContainers:
+      - name: gpu-aware-init
+        image: {{ .Values.registry }}/{{ include "GPUExt.gpuAwareImage" . }}
+        command: ['/gpu-aware']
+        args: ["init"]
+        volumeMounts:
+        - mountPath: /etc/metax
+          name: extender-config
+      containers:
+      - name: gpu-aware
+        image: {{ .Values.registry }}/{{ include "GPUExt.gpuAwareImage" . }}
+        imagePullPolicy: {{ default .Values.pullPolicy ((.Values.gpuDevice).image).pullPolicy }}
+        command: ['/gpu-aware']
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: gpu-aware-weight
+          mountPath: /etc/score-weight
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      volumes:
+      - name: gpu-aware-weight
+        configMap:
+          name: gpu-aware-weight
+      - name: extender-config
+        hostPath:
+          path: /etc/metax/
+          type: DirectoryOrCreate
+{{- end }}

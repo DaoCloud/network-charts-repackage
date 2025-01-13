@@ -1,0 +1,131 @@
+# Default values for metax-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+registry: release.daocloud.io/metax
+pullPolicy: IfNotPresent
+log:
+  dir: /var/log/metax
+  level: info
+  format: json
+  rotationTime: 1w
+  maxAge: 26w
+controller:
+  replicaCount: 1
+  name: operator-controller
+  nameOverride: ""
+  fullnameOverride: ""
+  imagePullSecrets: []
+  podAnnotations: {}
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: In
+                values: [""]
+  podSecurityContext: {}
+  securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  nodeSelector: {}
+  image:
+    version: 0.9.0
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "metax-operator"
+# label generator config
+gpuLabel:
+  log:
+  image:
+    name: gpu-label
+    version: 0.9.0
+# kernel module driver config
+driver:
+  deployPolicy: "PreferCloud"
+  # fw upgrade
+  fwUpgradePolicy: "Never"
+  fwEnableVirt: false
+  upgradePolicy:
+    enableRollout: false
+    upgradeSteps:
+      - replicas: 1
+        pauseDuration: 30000
+      - replicas: 100%
+    pause: false
+    maxParallel: 100%
+    maxUnavailable: 0%
+    maxFailureThreshold: 5
+    Fallback: pause
+  # payload contains the KMD package
+  payload:
+    name: "driver-image"
+    version: "2.25.2.8"
+  vfnumsConfig:
+    nodes:
+      sample-node:
+        vfnum: 4
+      sample-node2:
+        vfnum: 2
+  moduleParams:
+  nodeModuleParams:
+  log:
+  image:
+    name: driver-manager
+    version: 0.9.0
+# maca config
+maca:
+  # payload contains the UMD package
+  payload:
+    registry: ""
+    images:
+      - "maca-c500:2.24.0.8-ubuntu18.04-amd64" # DEFAULT_MACA_VERSION
+    name: cr.metax-tech.com/library/maca-c500
+    version: 2.20.2.19-ubuntu22.04-amd64
+  cleanupConfig:
+    threshold: 5
+    #policy: Never/OlderVersionFirst/OlderTimestampFirst
+    cleanupPolicy: Never
+  log:
+  image:
+    name: driver-manager
+    version: 0.9.0
+# container runtime config
+runtime:
+  log:
+  image:
+    name: container-runtime
+    version: 0.9.0
+# device plugin config
+gpuDevice:
+  healthyInterval: 5
+  log:
+  image:
+    name: gpu-device
+    version: 0.9.0
+# data exporter config
+dataExporter:
+  deploy: false
+  service:
+    type: ClusterIP
+    port: 30445
+  image:
+    version: "0.9.0"
+    name: mx-exporter
+image:
+  registry: release.daocloud.io/metax

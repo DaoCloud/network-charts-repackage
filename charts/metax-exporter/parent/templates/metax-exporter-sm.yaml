@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "mx-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    operator.insight.io/managed-by: insight
+spec:
+  endpoints:
+    - bearerTokenSecret:
+        key: ""
+      interval: 15s
+      path: /metrics
+      port: metrics
+      relabelings:
+        - action: replace
+          sourceLabels:
+            - __meta_kubernetes_endpoint_node_name
+          targetLabel: node
+      metricRelabelings: # beacuse of the mx_ prefix in the 0.9.0 version add.
+        - action: replace
+          regex: mx_(.*)
+          sourceLabels:
+            - __name__
+          targetLabel: __name__
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "mx-exporter.selectorLabels" . | nindent 6 }}

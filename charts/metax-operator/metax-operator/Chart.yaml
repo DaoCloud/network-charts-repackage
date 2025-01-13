@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.9.0
+description: Metax GPU kubernetes operator
+name: metax-operator
+type: application
+version: 0.9.0

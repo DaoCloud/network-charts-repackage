@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maca-config
+  namespace: {{ .Release.Namespace }}
+data:
+  cleanup: |
+    threshold: {{ .Values.maca.cleanupConfig.threshold }}
+    cleanupPolicy: {{ .Values.maca.cleanupConfig.cleanupPolicy }}
+
+

@@ -4,3 +4,6 @@
 /test/.config
 /charts/harbor-operator/chart-harbor-operator
 *pycache*
+charts/metax-exporter/data
+charts/metax-gpu-extensions/data
+charts/metax-operator/data

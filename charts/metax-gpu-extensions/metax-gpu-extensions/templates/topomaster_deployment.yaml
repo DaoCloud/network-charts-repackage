@@ -1,0 +1,74 @@
+{{- if .Values.topoDiscovery.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topo-master
+  labels:
+    {{- include "GPUExt.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "GPUExt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: topo-master
+        {{- include "GPUExt.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "GPUExt.serviceAccountName" . }}
+      serviceAccount:     {{ include "GPUExt.serviceAccountName" . }}
+      {{- with .Values.topoDiscovery.master.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topoDiscovery.master.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: topo-master
+        image: {{ .Values.registry }}/{{ include "GPUExt.topoMasterImage" . }}
+        imagePullPolicy: {{ default .Values.pullPolicy ((.Values.topoDiscovery.master).image).pullPolicy }}
+        command: ["/usr/local/topo-master/topo-master"]
+        args:
+        - --log-file=/var/log/topo-master.log
+        - --log-level={{ default .Values.log.level ((.Values.topoDiscovery.master).log).level }}
+        - --log-format={{ default .Values.log.format ((.Values.topoDiscovery.master).log).format }}
+        - --server-port={{ .Values.topoDiscovery.master.serverPort }}
+        - --rpc-server-port={{ .Values.topoDiscovery.rpcServerPort }}
+        {{ if eq .Values.topoDiscovery.mode "dragonfly" }}
+        {{ include "GPUExt.topoMasterDfCmd" . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: log
+          mountPath: /var/log
+        - name: topo-master-config
+          mountPath: /config
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.topoDiscovery.master.serverPort }}
+            scheme: HTTP
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: {{ .Values.topoDiscovery.master.serverPort }}
+            scheme: HTTP
+      volumes:
+      - name: log
+        hostPath:
+          path: {{ default .Values.log.dir ((.Values.topoDiscovery.master).log).dir }}
+          type: DirectoryOrCreate
+      - name: topo-master-config
+        configMap:
+          name: topo-master-config
+          items:
+          - key: "nodegroup"
+            path: "nodegroup.yaml"
+{{- end }}

@@ -1,0 +1,126 @@
+apiVersion: gpu.metax-tech.com/v1alpha1
+kind: ClusterOperator
+metadata:
+  name: cluster-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "metax-operator.labels" . | nindent 4 }}
+  finalizers:
+  - gpu.metax-tech.com
+spec:
+  labelgen:
+    image:
+      name:         {{ default "gpu-label"              ((.Values.gpuLabel).image).name }}
+      version:      {{ default .Chart.Version           ((.Values.gpuLabel).image).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.gpuLabel).image).pullPolicy  }}
+      registry:     {{ default .Values.registry         ((.Values.gpuLabel).image).registry }}
+    log:
+      dir:          {{ default .Values.log.dir          ((.Values.gpuLabel).log).dir }}
+      level:        {{ default .Values.log.level        ((.Values.gpuLabel).log).level }}
+      format:       {{ default .Values.log.format       ((.Values.gpuLabel).log).format }}
+      rotationTime: {{ default .Values.log.rotationTime ((.Values.gpuLabel).log).rotationTime }}
+      maxAge:       {{ default .Values.log.maxAge       ((.Values.gpuLabel).log).maxAge }}
+
+  driver:
+    deployPolicy:    {{ default "PreferCloud"           .Values.driver.deployPolicy }}
+    fwUpgradePolicy: {{ default "Never"                 .Values.driver.fwUpgradePolicy }}
+    fwEffectPolicy:  {{ default "NextReboot"            .Values.driver.fwEffectPolicy }}
+    fwEnableVirt:    {{ default "false"                 .Values.driver.fwEnableVirt }}
+    upgradePolicy:
+      enableRollout:        {{ default "false"         .Values.driver.upgradePolicy.enableRollout }}
+      pause:                {{ default "false"         .Values.driver.upgradePolicy.pause }}
+      upgradeSteps:
+      {{- range .Values.driver.upgradePolicy.upgradeSteps }}
+      - replicas:     {{ .replicas }}
+        pauseDuration: {{ default 0 .pauseDuration }}
+      {{- end }}
+      maxParallel:          {{ default "100%"           .Values.driver.upgradePolicy.maxParallel }}
+      maxUnavailable:       {{ default "0%"            .Values.driver.upgradePolicy.maxUnavailable }}
+      maxFailureThreshold:  {{ default "5"             .Values.driver.upgradePolicy.maxFailureThreshold }}
+      fallback:             {{ default "pause"         .Values.driver.upgradePolicy.fallback }}
+    image:
+      name:         {{ default "driver-manager"         ((.Values.driver).image).name }}
+      version:      {{ default .Chart.Version           ((.Values.driver).image).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.driver).image).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.driver).image).registry }}
+    payload:
+      name:         {{ ((.Values.driver).payload).name }}
+      version:      {{ ((.Values.driver).payload).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.driver).payload).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.driver).payload).registry }}
+    log:
+      dir:          {{ default .Values.log.dir          ((.Values.driver).log).dir }}
+      level:        {{ default .Values.log.level        ((.Values.driver).log).level }}
+      format:       {{ default .Values.log.format       ((.Values.driver).log).format }}
+      rotationTime: {{ default .Values.log.rotationTime ((.Values.driver).log).rotationTime }}
+      maxAge:       {{ default .Values.log.maxAge       ((.Values.driver).log).maxAge }}
+
+  maca:
+    payload:
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.maca).payload).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.maca).payload).registry }}
+      images:
+      {{- range .Values.maca.payload.images }}
+      - {{ . }}
+      {{- end }}
+    image:
+      name:         {{ default "driver-manager"         ((.Values.maca).image).name }}
+      version:      {{ default .Chart.Version           ((.Values.maca).image).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.maca).image).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.maca).image).registry }}
+    resources:
+      requests:
+        memory:     {{ default "1Gi"                    ((.Values.maca).resources).requests.memory }}
+      limits:
+        memory:     {{ default "10Gi"                   ((.Values.maca).resources).limits.memory }}
+    log:
+      dir:          {{ default .Values.log.dir          ((.Values.maca).log).dir }}
+      level:        {{ default .Values.log.level        ((.Values.maca).log).level }}
+      format:       {{ default .Values.log.format       ((.Values.maca).log).format }}
+      rotationTime: {{ default .Values.log.rotationTime ((.Values.maca).log).rotationTime }}
+      maxAge:       {{ default .Values.log.maxAge       ((.Values.maca).log).maxAge }}
+
+  runtime:
+    image:
+      name:         {{ default "container-runtime"      ((.Values.runtime).image).name }}
+      version:      {{ default .Chart.Version           ((.Values.runtime).image).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.runtime).image).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.runtime).image).registry }}
+    log:
+      dir:          {{ default .Values.log.dir          ((.Values.runtime).log).dir }}
+      level:        {{ default .Values.log.level        ((.Values.runtime).log).level }}
+      format:       {{ default .Values.log.format       ((.Values.runtime).log).format }}
+      rotationTime: {{ default .Values.log.rotationTime ((.Values.runtime).log).rotationTime }}
+      maxAge:       {{ default .Values.log.maxAge       ((.Values.runtime).log).maxAge }}
+
+  devicePlugin:
+    image:
+      name:         {{ default "gpu-device"             ((.Values.gpuDevice).image).name }}
+      version:      {{ default .Chart.Version           ((.Values.gpuDevice).image).version }}
+      pullPolicy:   {{ default .Values.pullPolicy       ((.Values.gpuDevice).image).pullPolicy }}
+      registry:     {{ default .Values.registry         ((.Values.gpuDevice).image).registry }}
+    log:
+      dir:          {{ default .Values.log.dir          ((.Values.gpuDevice).log).dir }}
+      level:        {{ default .Values.log.level        ((.Values.gpuDevice).log).level }}
+      format:       {{ default .Values.log.format       ((.Values.gpuDevice).log).format }}
+      rotationTime: {{ default .Values.log.rotationTime ((.Values.gpuDevice).log).rotationTime }}
+      maxAge:       {{ default .Values.log.maxAge       ((.Values.gpuDevice).log).maxAge }}
+    healthyInterval: {{ .Values.gpuDevice.healthyInterval }}
+
+  dataExporter:
+    deploy: {{ .Values.dataExporter.deploy }}
+    service:
+      {{- if .Values.dataExporter.service }}
+        type: {{ .Values.dataExporter.service.type | default "ClusterIP" }}
+        port: {{ .Values.dataExporter.service.port | default 30445 }}
+      {{- else}}
+        type: "ClusterIP"
+        port: 30445
+      {{- end}}
+    image:
+      name:       {{ default "mx-exporter"      ((.Values.dataExporter).image).name }}
+      version:    {{ default .Chart.Version     ((.Values.dataExporter).image).version }}
+      pullPolicy: {{ default .Values.pullPolicy ((.Values.dataExporter).image).pullPolicy }}
+      registry:   {{ default .Values.registry   ((.Values.dataExporter).image).registry }}
+
+  {{ default ""  .Values.tolerations}}

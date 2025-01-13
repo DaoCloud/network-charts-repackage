@@ -1,0 +1,753 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: clusteroperators.gpu.metax-tech.com
+spec:
+  group: gpu.metax-tech.com
+  names:
+    kind: ClusterOperator
+    listKind: ClusterOperatorList
+    plural: clusteroperators
+    singular: clusteroperator
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterOperator is the Schema for the clusteroperators API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterOperatorSpec defines the desired state of ClusterOperator
+            properties:
+              dataExporter:
+                description: data-exporter component spec
+                properties:
+                  deploy:
+                    description: data-exporter deploy flag
+                    type: boolean
+                  image:
+                    description: data-exporter image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  service:
+                    description: data-exporter service config
+                    properties:
+                      port:
+                        description: data-exporter port number in NodePort or LoadBanlacer
+                          service type
+                        format: int32
+                        type: integer
+                      type:
+                        description: data-experter service type
+                        enum:
+                        - ClusterIP
+                        - NodePort
+                        - LoadBalancer
+                        - ExternalName
+                        type: string
+                    type: object
+                type: object
+              devicePlugin:
+                description: k8s-device-plugin component spec
+                properties:
+                  healthyInterval:
+                    description: k8s-device-plugin healthyInterval config
+                    type: integer
+                  image:
+                    description: k8s-device-plugin image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  log:
+                    description: k8s-device-plugin log config information
+                    properties:
+                      dir:
+                        description: the log file directory in Node,should be absolute
+                          path
+                        type: string
+                      format:
+                        description: the log format, one of 'text' or 'json'
+                        enum:
+                        - text
+                        - json
+                        type: string
+                      level:
+                        description: the log level, one of 'debug' 'info' 'warn' 'error'
+                        enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                      maxAge:
+                        description: |-
+                          the longest log storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                      rotationTime:
+                        description: |-
+                          the log rotation storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                    type: object
+                type: object
+              driver:
+                description: Driver component spec
+                properties:
+                  args:
+                    description: 'Optional: List of arguments'
+                    items:
+                      type: string
+                    type: array
+                  deployPolicy:
+                    description: DeployPolicy indicates deployment policy of driver
+                    enum:
+                    - Always
+                    - IfNotExist
+                    - Never
+                    - IfNewer
+                    - PreferCloud
+                    - PreferHost
+                    - PreferNewer
+                    type: string
+                  fwEffectPolicy:
+                    description: FwEffectPolicy indicates the fw effect policy
+                    enum:
+                    - WaitReboot
+                    - NextReboot
+                    - WarmReset
+                    type: string
+                  fwEnableVirt:
+                    description: FwEnableVirt indicates the fw enable virt
+                    type: boolean
+                  fwUpgradePolicy:
+                    description: FwUpgradePolicy indicates the fw upgrade policy
+                    enum:
+                    - PreferCloud
+                    - Never
+                    type: string
+                  image:
+                    description: Driver image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  log:
+                    description: metax-driver log config information
+                    properties:
+                      dir:
+                        description: the log file directory in Node,should be absolute
+                          path
+                        type: string
+                      format:
+                        description: the log format, one of 'text' or 'json'
+                        enum:
+                        - text
+                        - json
+                        type: string
+                      level:
+                        description: the log level, one of 'debug' 'info' 'warn' 'error'
+                        enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                      maxAge:
+                        description: |-
+                          the longest log storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                      rotationTime:
+                        description: |-
+                          the log rotation storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                    type: object
+                  payload:
+                    description: Payload image contains KMD package informations
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  registry:
+                    description: Driver image registry
+                    type: string
+                  upgradePolicy:
+                    properties:
+                      enableRollout:
+                        default: false
+                        description: EnableRollout indicates the driver upgrade is
+                          enabled
+                        type: boolean
+                      fallback:
+                        default: pause
+                        description: |-
+                          Fallback indicates which action will be executed when the upgrade step reached
+                          the maximum failure threshold
+                        enum:
+                        - pause
+                        - rollback
+                        type: string
+                      maxFailureThreshold:
+                        default: 5
+                        description: MaxFailureThreshold indicates the number of times
+                          to retry a failed step
+                        format: int32
+                        type: integer
+                      maxParallel:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        default: 100%
+                        description: MaxParallel indicates how many worker node will
+                          be installed the new version in parallel
+                        x-kubernetes-int-or-string: true
+                      maxUnavailable:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        default: 0%
+                        description: |-
+                          MaxUnavailable indicates how many worker nodes could be upgraded unsuccessfuly
+                          or unavaiable in the whole upgrade lifecycle
+                          Upgrade Controller will handle this on completed state
+                        x-kubernetes-int-or-string: true
+                      pause:
+                        default: false
+                        description: |-
+                          Paused indicates that the Upgrade is paused.
+                          Default value is false
+                        type: boolean
+                      upgradeSteps:
+                        description: UpgradeSteps indicates the details of upgrade
+                          step
+                        items:
+                          properties:
+                            pauseDuration:
+                              description: |-
+                                Duration the amount of time to wait before moving to the next step.
+                                default is 0, means manager should manully trigger upgrade
+                              format: int64
+                              type: integer
+                            replicas:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: |-
+                                Replicas is the number of expected upgrade pods in this step
+                                it can be an absolute number (ex: 5) or a percentage of total pods.
+                              x-kubernetes-int-or-string: true
+                            toleration:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: |-
+                                Toleration indicates system can tolorate failure in every step
+                                it can be an absolute number (ex: 5) or a percentage of total pods.
+                                if it's empty, it's equvalient to 0
+                              x-kubernetes-int-or-string: true
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              labelgen:
+                description: label generator component spec
+                properties:
+                  image:
+                    description: GPU lalbel generator image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  log:
+                    description: GPU label log config information
+                    properties:
+                      dir:
+                        description: the log file directory in Node,should be absolute
+                          path
+                        type: string
+                      format:
+                        description: the log format, one of 'text' or 'json'
+                        enum:
+                        - text
+                        - json
+                        type: string
+                      level:
+                        description: the log level, one of 'debug' 'info' 'warn' 'error'
+                        enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                      maxAge:
+                        description: |-
+                          the longest log storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                      rotationTime:
+                        description: |-
+                          the log rotation storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                    type: object
+                type: object
+              maca:
+                description: MACA component spec
+                properties:
+                  image:
+                    description: MACA image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  log:
+                    description: metax-maca log config information
+                    properties:
+                      dir:
+                        description: the log file directory in Node,should be absolute
+                          path
+                        type: string
+                      format:
+                        description: the log format, one of 'text' or 'json'
+                        enum:
+                        - text
+                        - json
+                        type: string
+                      level:
+                        description: the log level, one of 'debug' 'info' 'warn' 'error'
+                        enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                      maxAge:
+                        description: |-
+                          the longest log storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                      rotationTime:
+                        description: |-
+                          the log rotation storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                    type: object
+                  payload:
+                    description: Payload image contains a set of UMD information
+                    properties:
+                      images:
+                        description: images' array
+                        items:
+                          type: string
+                        type: array
+                      pullPolicy:
+                        description: payload image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: payload image registry
+                        type: string
+                    type: object
+                  resources:
+                    description: Resources set requests and limits for every container
+                      in pod
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                type: object
+              runtime:
+                description: container runtime component spec
+                properties:
+                  image:
+                    description: container runtime image information
+                    properties:
+                      name:
+                        description: container image name
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      pullPolicy:
+                        description: container image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      registry:
+                        description: container image registry
+                        type: string
+                      version:
+                        description: container image tag, set
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                    type: object
+                  log:
+                    description: container runtime log config information
+                    properties:
+                      dir:
+                        description: the log file directory in Node,should be absolute
+                          path
+                        type: string
+                      format:
+                        description: the log format, one of 'text' or 'json'
+                        enum:
+                        - text
+                        - json
+                        type: string
+                      level:
+                        description: the log level, one of 'debug' 'info' 'warn' 'error'
+                        enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                      maxAge:
+                        description: |-
+                          the longest log storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                      rotationTime:
+                        description: |-
+                          the log rotation storage time
+                          supported unit: W or w means week,D or d means day,H or h means hour
+                          1w = 7d = 168h
+                        pattern: ^[1-9][0-9]*[wWdDhH]$
+                        type: string
+                    type: object
+                type: object
+              tolerations:
+                description: pod-global-tolerations component spec
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+            required:
+            - dataExporter
+            - devicePlugin
+            - driver
+            - labelgen
+            - maca
+            - runtime
+            type: object
+          status:
+            description: ClusterOperatorStatus defines the observed state of ClusterOperator
+            properties:
+              state:
+                description: State indicates progress of components deployment
+                enum:
+                - init
+                - depolying
+                - ready
+                type: string
+              upgradeStatus:
+                description: UpgradeStatus defines the observed state of Upgrade
+                properties:
+                  conditions:
+                    description: Conditions a list of conditions a Upgrade can have.
+                    items:
+                      properties:
+                        lastTransitionTime:
+                          description: Last time the condition transitioned from one
+                            status to another.
+                          format: date-time
+                          type: string
+                        lastUpdateTime:
+                          description: The last time this condition was updated.
+                          format: date-time
+                          type: string
+                        message:
+                          description: A human readable message indicating details
+                            about the transition.
+                          type: string
+                        reason:
+                          description: The reason for the condition's last transition.
+                          type: string
+                        type:
+                          description: Type of Upgrade condition.
+                          type: string
+                      required:
+                      - message
+                      - reason
+                      - type
+                      type: object
+                    type: array
+                  lastAppliedSpec:
+                    description: LastAppliedSpec is the last applied spec object,
+                      is used to restore the spec object
+                    type: string
+                  lastCoDriverSpec:
+                    description: LastCoDriverSpec is the last applied clusteroperator.driver
+                      spec object, is used to restore the spec object
+                    type: string
+                  message:
+                    description: Message provides details on why the Upgrade is in
+                      its current phase
+                    type: string
+                  phase:
+                    description: Phase is the Upgrade phase.
+                    type: string
+                  status:
+                    description: UpgradeStepStatus describes the state of the Upgrade
+                    properties:
+                      CurrentUpgradeReadyReplicas:
+                        description: CurrentUpgradeReadyReplicas the numbers of ready
+                          upgrade revision pods
+                        format: int32
+                        type: integer
+                      currentFailureRetry:
+                        default: 0
+                        format: int32
+                        type: integer
+                      currentStepIndex:
+                        description: |-
+                          CurrentStepIndex defines the current step of the Upgrade is on.
+                          If the current step index is null, the controller will execute the upgrade.
+                        format: int32
+                        type: integer
+                      currentStepState:
+                        default: ""
+                        type: string
+                      currentUpgradeReplicas:
+                        description: CurrentUpgradeReplicas the numbers of upgrade
+                          revision pods
+                        format: int32
+                        type: integer
+                      lastPodSpecRevision:
+                        description: lastPodRevision indicates the revision of last
+                          pods
+                        type: string
+                      lastUpdateTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      recheckTime:
+                        format: date-time
+                        type: string
+                      totalUpgradeReadyReplicas:
+                        format: int32
+                        type: integer
+                      totalUpgradeReplicas:
+                        format: int32
+                        type: integer
+                      upgradingPodSpecRevision:
+                        description: lastPodRevision indicates the revision of upgrading
+                          pods
+                        type: string
+                    required:
+                    - CurrentUpgradeReadyReplicas
+                    - currentFailureRetry
+                    - currentStepState
+                    - currentUpgradeReplicas
+                    - totalUpgradeReadyReplicas
+                    - totalUpgradeReplicas
+                    type: object
+                  upgrading:
+                    type: boolean
+                type: object
+            required:
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

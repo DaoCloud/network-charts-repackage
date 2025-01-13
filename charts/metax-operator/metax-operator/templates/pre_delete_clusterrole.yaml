@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: operator-deleter-clusterrole
+rules:
+- apiGroups:
+  - "gpu.metax-tech.com"
+  resources:
+  - clusteroperators
+  verbs:
+  - list
+  - watch
+  - delete
