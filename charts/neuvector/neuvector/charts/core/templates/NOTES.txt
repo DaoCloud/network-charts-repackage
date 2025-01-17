@@ -1,6 +1,9 @@
 {{- if and .Values.manager.enabled .Values.manager.ingress.enabled }}
 From outside the cluster, the NeuVector URL is:
 http://{{ .Values.manager.ingress.host }}
+{{- else if and .Values.manager.enabled .Values.manager.ingress.enabled .Values.manager.ingress.tls}}
+From outside the cluster, the NeuVector URL is:
+https://{{ .Values.manager.ingress.host }}
 {{- else if not .Values.openshift }}
 Get the NeuVector URL by running these commands:
 {{- if contains "NodePort" .Values.manager.svc.type }}
@@ -17,4 +20,15 @@ Get the NeuVector URL by running these commands:
   SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} neuvector-service-webui -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
   echo https://$SERVICE_IP:8443
 {{- end }}
+{{- end }}
+
+
+{{- if or (.Values.global.aws.enabled) (.Values.bootstrapPassword) }}
+
+NOTE: Use below command to get the password to login to NeuVector WebUi using admin account if it is a fresh install and not a restore from PVC, no admin password is set in the configmap or secret. The password is randomly generated during the deployment if AWS cloud billing is enabled.
+
+To get the bootstrap password:
+
+kubectl get secret --namespace {{ .Release.Namespace }} neuvector-bootstrap-secret -o go-template='{{ "{{" }}.data.bootstrapPassword|base64decode{{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
+
 {{- end }}
