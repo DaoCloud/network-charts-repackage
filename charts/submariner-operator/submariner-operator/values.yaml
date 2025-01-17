@@ -6,6 +6,8 @@ submariner-operator:
     clusterCidr: ""
     serviceCidr: ""
     globalCidr: ""
+    clustersetIpCidr: ""
+    clustersetIpEnabled: false
     loadBalancerEnabled: false
     natEnabled: false
     colorCodes: blue
@@ -16,7 +18,7 @@ submariner-operator:
     coreDNSCustomConfig: {}
     images:
       repository: submariner
-      tag: "0.16.2"
+      tag: "0.19.2"
       registry: quay.m.daocloud.io
   broker:
     server: example.k8s.apiserver
@@ -41,7 +43,7 @@ submariner-operator:
   operator:
     image:
       repository: submariner/submariner-operator
-      tag: "0.16.2"
+      tag: "0.19.2"
       pullPolicy: IfNotPresent
       registry: quay.m.daocloud.io
     resources:
