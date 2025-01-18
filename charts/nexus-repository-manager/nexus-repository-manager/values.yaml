@@ -7,7 +7,7 @@ nexus-repository-manager:
   image:
     # Sonatype Official Public Image
     repository: sonatype/nexus3
-    tag: 3.61.0
+    tag: 3.64.0
     pullPolicy: IfNotPresent
     registry: docker.m.daocloud.io
   imagePullSecrets:
