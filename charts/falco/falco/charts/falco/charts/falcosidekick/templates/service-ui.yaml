@@ -6,27 +6,32 @@ metadata:
   name: {{ include "falcosidekick.fullname" . }}-ui
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}-ui
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}-ui
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-  {{- with .Values.webui.service.annotations }}
-  annotations:
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+    {{- with .Values.webui.customLabels }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
+  annotations:
+    {{- with .Values.webui.customAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.webui.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   type: {{ .Values.webui.service.type }}
   ports:
     - port: {{ .Values.webui.service.port }}
-      {{ if eq .Values.webui.service.type "NodePort" }}
+      {{- if eq .Values.webui.service.type "NodePort" }}
       nodePort: {{ .Values.webui.service.nodePort }}
-      {{ end }}   
+      {{- end }}   
       targetPort: {{ .Values.webui.service.targetPort }}
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}-ui
-    app.kubernetes.io/instance: {{ .Release.Name }}-ui
+    {{- include "falcosidekick.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+{{- if .Values.webui.redis.enabled }}
 ---
 apiVersion: v1
 kind: Service
@@ -34,22 +39,21 @@ metadata:
   name: {{ include "falcosidekick.fullname" . }}-ui-redis
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}-ui-redis
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}-ui
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
   {{- with .Values.webui.redis.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.webui.redis.service.type }}
   ports:
     - port: {{ .Values.webui.redis.service.port }}
       targetPort: {{ .Values.webui.redis.service.targetPort }}
       protocol: TCP
       name: redis
   selector:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}-ui-redis
-    app.kubernetes.io/instance: {{ .Release.Name }}-ui-redis
+    {{- include "falcosidekick.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ui-redis
+{{- end }}
 {{- end }}

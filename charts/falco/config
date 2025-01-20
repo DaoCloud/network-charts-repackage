@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://falcosecurity.github.io/charts
 export REPO_NAME=falcosecurity
 export CHART_NAME=falco
-export VERSION=2.0.17
+export VERSION=4.17.2
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
