@@ -120,7 +120,7 @@ jobs:
           echo ::set-output name=project_list::${project_list}
 
       - name: Upload chart artifact
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4.6.0
         with:
           name: charts
           path: _upload
