@@ -9,14 +9,18 @@ metadata:
   name: {{ $fullName }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-  {{- with .Values.ingress.annotations }}
-  annotations:
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
+    {{- with .Values.customLabels }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
+  annotations:
+    {{- with .Values.customAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
 {{- if .Values.ingress.ingressClassName }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}

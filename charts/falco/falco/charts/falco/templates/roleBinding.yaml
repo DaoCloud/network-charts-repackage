@@ -1,5 +1,5 @@
-{{- if .Values.rbac.create }}
-kind: ClusterRoleBinding
+{{- if and .Values.rbac.create (eq .Values.driver.kind "auto")}}
+kind: RoleBinding
 apiVersion: {{ include "rbac.apiVersion" . }}
 metadata:
   name: {{ include "falco.fullname" . }}
@@ -8,9 +8,9 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ include "falco.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "falco.namespace" . }}
 roleRef:
-  kind: ClusterRole
+  kind: Role
   name: {{ include "falco.fullname" . }}
   apiGroup: rbac.authorization.k8s.io
 {{- end }}

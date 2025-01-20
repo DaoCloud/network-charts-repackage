@@ -5,14 +5,18 @@ metadata:
   name: {{ include "falcosidekick.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-  {{- with .Values.service.annotations }}
-  annotations:
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
+    {{- with .Values.customLabels }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
+  annotations:
+    {{- with .Values.customAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -20,6 +24,12 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    {{- if not (eq .Values.config.tlsserver.notlspaths "") }}
+    - port: {{ .Values.config.tlsserver.notlsport }}
+      targetPort: http-notls
+      protocol: TCP
+      name: http-notls
+    {{- end }}
   selector:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "falcosidekick.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: core
