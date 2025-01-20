@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://charts.bitnami.com/bitnami
 export REPO_NAME=bitnami
 export CHART_NAME=wordpress
-export VERSION=15.2.39
+export VERSION=24.1.7
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
