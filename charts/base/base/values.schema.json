@@ -5,48 +5,53 @@
         "base": {
             "type": "object",
             "properties": {
-                "base": {
+                "_internal_defaults_do_not_set": {
                     "type": "object",
                     "properties": {
-                        "enableCRDTemplates": {
-                            "type": "boolean"
-                        },
-                        "enableIstioConfigCRDs": {
-                            "type": "boolean"
-                        },
-                        "validationURL": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "defaultRevision": {
-                    "type": "string"
-                },
-                "global": {
-                    "type": "object",
-                    "properties": {
-                        "configValidation": {
-                            "type": "boolean"
-                        },
-                        "externalIstiod": {
-                            "type": "boolean"
-                        },
-                        "imagePullSecrets": {
-                            "type": "array"
-                        },
-                        "istioNamespace": {
-                            "type": "string"
-                        },
-                        "istiod": {
+                        "base": {
                             "type": "object",
                             "properties": {
-                                "enableAnalysis": {
+                                "enableCRDTemplates": {
+                                    "type": "boolean"
+                                },
+                                "enableIstioConfigCRDs": {
+                                    "type": "boolean"
+                                },
+                                "excludedCRDs": {
+                                    "type": "array"
+                                },
+                                "validationCABundle": {
+                                    "type": "string"
+                                },
+                                "validationURL": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "defaultRevision": {
+                            "type": "string"
+                        },
+                        "experimental": {
+                            "type": "object",
+                            "properties": {
+                                "stableValidationPolicy": {
                                     "type": "boolean"
                                 }
                             }
                         },
-                        "remotePilotAddress": {
-                            "type": "string"
+                        "global": {
+                            "type": "object",
+                            "properties": {
+                                "imagePullSecrets": {
+                                    "type": "array"
+                                },
+                                "istioNamespace": {
+                                    "type": "string"
+                                },
+                                "platform": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
