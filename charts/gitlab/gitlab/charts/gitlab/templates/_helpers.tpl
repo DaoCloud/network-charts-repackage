@@ -112,7 +112,9 @@ Returns the minio url.
 {{- define "gitlab.certmanager_annotations" -}}
 {{- if (pluck "configureCertmanager" .Values.ingress .Values.global.ingress (dict "configureCertmanager" false) | first) -}}
 cert-manager.io/issuer: "{{ .Release.Name }}-issuer"
+{{-   if not .Values.global.ingress.useNewIngressForCerts }}
 acme.cert-manager.io/http01-edit-in-place: "true"
+{{-   end -}}
 {{- end -}}
 {{- end -}}
 
@@ -466,15 +468,10 @@ Return the name template for shared-secrets job.
 
 {{/*
 Create a default fully qualified job name for shared-secrets.
-Due to the job only being allowed to run once, we add the chart revision so helm
-upgrades don't cause errors trying to create the already ran job.
-Due to the helm delete not cleaning up these jobs, we add a randome value to
-reduce collision
 */}}
 {{- define "shared-secrets.jobname" -}}
 {{- $name := include "shared-secrets.fullname" . | trunc 55 | trimSuffix "-" -}}
-{{- $rand := randAlphaNum 3 | lower }}
-{{- printf "%s-%d-%s" $name .Release.Revision $rand | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-%s" $name ( include "gitlab.jobNameSuffix" . ) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -487,6 +484,15 @@ Create the name of the service account to use for shared-secrets job
 {{- else -}}
     {{ coalesce $sharedSecretValues.serviceAccount.name .Values.global.serviceAccount.name "default" }}
 {{- end -}}
+{{- end -}}
+
+{{/*
+Set if the default ServiceAccount token should be mounted by Kubernetes or not.
+
+Default is 'false'
+*/}}
+{{- define "gitlab.automountServiceAccountToken" -}}
+automountServiceAccountToken: {{ pluck "automountServiceAccountToken" .Values.serviceAccount .Values.global.serviceAccount | first }}
 {{- end -}}
 
 {{/*
@@ -503,6 +509,16 @@ emptyDir: {}
 emptyDir: {{ toYaml $values | nindent 2 }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Return upgradeCheck container specific securityContext template
+*/}}
+{{- define "upgradeCheck.containerSecurityContext" }}
+{{- if .Values.upgradeCheck.containerSecurityContext }}
+securityContext:
+  {{- toYaml .Values.upgradeCheck.containerSecurityContext | nindent 2 }}
+{{- end }}
+{{- end }}
 
 {{/*
 Return init container specific securityContext template
@@ -523,6 +539,8 @@ securityContext:
   {{- toYaml .Values.containerSecurityContext | nindent 2 }}
 {{- end }}
 {{- end }}
+
+{{/*
 Return a PodSecurityContext definition.
 
 Usage:
@@ -544,5 +562,76 @@ securityContext:
 {{-   if not (empty $psc.fsGroupChangePolicy) }}
   fsGroupChangePolicy: {{ $psc.fsGroupChangePolicy }}
 {{-   end }}
+{{-   if $psc.seccompProfile }}
+  seccompProfile:
+    {{- toYaml $psc.seccompProfile | nindent 4 }}
 {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Return a PodSecurityContext definition that allows to it to run as root.
+
+Usage:
+  {{ include "gitlab.podSecurityContextRoot" .Values.securityContext }}
+*/}}
+{{- define "gitlab.podSecurityContextRoot" -}}
+{{- $psc := . }}
+{{- if $psc }}
+securityContext:
+{{-   if not (eq $psc.runAsUser nil) }}
+  runAsUser: {{ $psc.runAsUser }}
+{{-   end }}
+{{-   if not (eq $psc.runAsGroup nil) }}
+  runAsGroup: {{ $psc.runAsGroup }}
+{{-   end }}
+{{-   if not (eq $psc.fsGroup nil) }}
+  fsGroup: {{ $psc.fsGroup }}
+{{-   end }}
+{{-   if not (eq $psc.fsGroupChangePolicy nil) }}
+  fsGroupChangePolicy: {{ $psc.fsGroupChangePolicy }}
+{{-   end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Returns `.Values.global.job.nameSuffixOverride` if set.
+
+If `.Values.global.job.nameSuffixOverride` is not set, job names will be
+suffixed by a hash that is based on the chart's app version and the chart's
+values (which also might contain the global.gitlabVersion) to make sure that
+the job is run at least once everytime GitLab is updated.
+
+In order to make sure that the hash is stable for `helm template`
+and `helm upgrade --install`, we need to remove the `local` block injected
+by the template file `charts/gitlab/templates/_databaseDatamodel.tpl`.
+
+This local block contains the values of the Helm "built-in object"
+(see https://helm.sh/docs/chart_template_guide/builtin_objects) which would
+result in different hash values due to fields like `Release.IsUpgrade`,
+`Release.IsInstall` and especially `Release.Revision`.
+*/}}
+{{- define "gitlab.jobNameSuffix" -}}
+{{-   if .Values.global.job.nameSuffixOverride -}}
+{{-     tpl .Values.global.job.nameSuffixOverride . -}}
+{{-   else -}}
+{{-     $values := unset ( deepCopy .Values ) "local" -}}
+{{-     printf "%s-%s-%s" .Chart.Version .Chart.AppVersion ( $values | toYaml | b64enc ) | sha256sum | trunc 7 -}}
+{{-   end -}}
+{{- end -}}
+
+{{/*
+Return a boolean value that indicates whether a given key exists in the provided environment
+variables.
+
+Usage: {{- include checkDuplicateKeyFromEnv (dict "keyToFind" "MY_KEY", "extraEnv" .Values.extraEnv, "extraEnvFrom"
+.Values.extraEnvFrom) -}}
+*/}}
+{{- define "checkDuplicateKeyFromEnv" -}}
+  {{- $keyToFind := .keyToFind -}}
+  {{- $extraEnv := .extraEnv -}}
+  {{- $extraEnvFrom := .extraEnvFrom -}}
+  {{- $combinedKeys := merge $extraEnv $extraEnvFrom -}}
+  
+  {{ hasKey $combinedKeys $keyToFind }}
 {{- end -}}

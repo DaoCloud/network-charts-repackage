@@ -19,9 +19,17 @@
 {{   (index $.Values.global.oauth "gitlab-pages" "redirectUri") }}
 {{- else -}}
 {{-   if eq "true" (include "gitlab.pages.https" $) -}}
+{{-     if $.Values.global.pages.namespaceInPath -}}
+https://{{ template "gitlab.pages.hostname" . }}/projects/auth
+{{-     else -}}
 https://projects.{{ template "gitlab.pages.hostname" . }}/auth
+{{-     end -}}
 {{-   else -}}
+{{-     if $.Values.global.pages.namespaceInPath -}}
+http://{{ template "gitlab.pages.hostname" . }}/projects/auth
+{{-     else -}}
 http://projects.{{ template "gitlab.pages.hostname" . }}/auth
+{{-     end -}}
 {{-   end -}}
 {{- end -}}
 {{- end -}}

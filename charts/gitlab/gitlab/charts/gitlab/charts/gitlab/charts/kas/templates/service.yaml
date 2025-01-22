@@ -43,6 +43,5 @@ spec:
       name: http-metrics
   {{- end }}
   selector:
-    app: {{ template "name" . }}
-    release: {{ .Release.Name }}
+    {{- include "kas.podSelectorLabels" . | nindent 4 }}
 {{- end -}}

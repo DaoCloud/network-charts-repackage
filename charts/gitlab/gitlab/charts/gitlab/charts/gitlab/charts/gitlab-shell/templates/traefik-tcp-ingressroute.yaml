@@ -1,6 +1,7 @@
 {{- if .Values.enabled -}}
 {{- if eq .Values.global.ingress.provider "traefik" -}}
-apiVersion: traefik.containo.us/v1alpha1
+{{- $traefikApiVersion := dict "global" .Values.global.traefik "local" .Values.traefik "context" . -}}
+apiVersion: "{{ template "traefik.apiVersion" $traefikApiVersion }}"
 kind: IngressRouteTCP
 metadata:
   name: {{ $.Release.Name }}-gitlab-shell
@@ -10,9 +11,13 @@ metadata:
     {{- include "gitlab.commonLabels" . | nindent 4 }}
 spec:
   entryPoints:
-    - gitlab-shell
+    - {{ .Values.traefik.entrypoint }}
   routes:
   - match: HostSNI(`*`)
+    {{- with .Values.traefik.tcpMiddlewares }}
+    middlewares:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     services:
     - name: {{ template "fullname" . }}
       namespace: {{ .Release.Namespace }}

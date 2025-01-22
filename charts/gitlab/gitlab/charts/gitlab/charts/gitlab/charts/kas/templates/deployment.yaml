@@ -28,8 +28,8 @@ spec:
         {{- include "gitlab.podLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
-      {{- if and .Values.metrics.enabled (not .Values.metrics.serviceMonitor.enabled) }}
+        cluster-autoscaler.kubernetes.io/safe-to-evict: {{ .Values.hpa.safeToEvict | quote }}
+      {{- if and .Values.metrics.enabled (not .Values.metrics.serviceMonitor.enabled) (not $.Values.metrics.podMonitor.enabled) }}
         gitlab.com/prometheus_scrape: "true"
         gitlab.com/prometheus_port: {{ .Values.observability.port | quote }}
         gitlab.com/prometheus_path: {{ .Values.metrics.path }}
@@ -49,26 +49,8 @@ spec:
       {{- if or .Values.serviceAccount.enabled .Values.global.serviceAccount.enabled }}
       serviceAccountName: {{ include "gitlab.serviceAccount.name" . }}
       {{- end }}
-      automountServiceAccountToken: false
-      {{- if eq (default .Values.global.antiAffinity .antiAffinity) "hard" }}
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - topologyKey: {{ default .Values.global.affinity.podAntiAffinity.topologyKey .Values.affinity.podAntiAffinity.topologyKey | quote }}
-              labelSelector:
-                matchLabels:
-                  {{- include "gitlab.selectorLabels" . | nindent 18 }}
-      {{- else if eq (default .Values.global.antiAffinity .antiAffinity) "soft" }}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 1
-            podAffinityTerm:
-              topologyKey: {{ default .Values.global.affinity.podAntiAffinity.topologyKey .Values.affinity.podAntiAffinity.topologyKey | quote }}
-              labelSelector:
-                matchLabels:
-                  {{- include "gitlab.selectorLabels" . | nindent 18 }}
-      {{- end }}
+      {{- include "gitlab.automountServiceAccountToken" . | nindent 6 }}
+      {{- include "gitlab.affinity" . | nindent 6 }}
       {{- include "gitlab.podSecurityContext" .Values.securityContext | nindent 6 }}
       {{- include "gitlab.image.pullSecrets" $imageCfg | indent 6 }}
       {{- include "gitlab.priorityClassName" . | nindent 6 }}
@@ -92,7 +74,8 @@ spec:
             - name: OWN_PRIVATE_API_URL
               value: "{{ include "gitlab.kas.internal.scheme" . }}://$(POD_IP):{{ .Values.service.privateApiPort }}"
             {{- include "gitlab.extraEnv" . | nindent 12 }}
-            {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" (dict)) | nindent 12 }}
+            {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 12 }}
+            {{- include "gitlab.timeZone.env" . | nindent 12 }}
           ports:
             - containerPort: {{ .Values.service.internalPort }}
               name: {{ template "name" . }}
@@ -142,9 +125,14 @@ spec:
                 items:
                   - key: {{ template "gitlab.kas.privateApi.key" . }}
                     path: .gitlab_kas_private_api_secret
-            {{- if or $.Values.privateApi.tls.enabled $.Values.global.kas.tls.enabled }}
             - secret:
-                name: {{ default .Values.privateApi.tls.secretName .Values.global.kas.tls.secretName | quote }}
+                name: {{ template "gitlab.kas.websocketToken.secret" . }}
+                items:
+                  - key: {{ template "gitlab.kas.websocketToken.key" . }}
+                    path: .gitlab_kas_websocket_token_secret
+            {{- if $.Values.global.kas.tls.enabled }}
+            - secret:
+                name: {{ .Values.global.kas.tls.secretName | quote }}
                 items:
                   - key: tls.crt
                     path: tls.crt
@@ -152,6 +140,8 @@ spec:
                     path: tls.key
             {{- end }}
             {{- if .Values.redis.enabled -}}
-            {{- include "gitlab.redis.secrets" (dict "globalContext" $ "instances" "sharedState" "mountRedisYmlOverrideSecrets" false) | nindent 12 }}
+            {{-   $instance := empty .Values.global.redis.kas | ternary "sharedState" "kas" }}
+            {{-   include "gitlab.redis.secrets" (dict "globalContext" $ "instances" $instance "mountRedisYmlOverrideSecrets" false) | nindent 12 }}
+            {{-   include "gitlab.redisSentinel.secret" $ | nindent 12 }}
             {{- end }}
 {{- end }}

@@ -21,11 +21,17 @@ spec:
   startingDeadlineSeconds: {{ .Values.backups.cron.startingDeadlineSeconds }}
   successfulJobsHistoryLimit: {{ .Values.backups.cron.successfulJobsHistoryLimit }}
   suspend: {{ .Values.backups.cron.suspend }}
+  {{- if .Values.backups.cron.timeZone }}
+  timeZone: {{ .Values.backups.cron.timeZone | quote }}
+  {{- end }}
   jobTemplate:
     spec:
       backoffLimit: {{ .Values.backups.cron.backoffLimit }}
       {{- if .Values.backups.cron.activeDeadlineSeconds }}
       activeDeadlineSeconds: {{ .Values.backups.cron.activeDeadlineSeconds }}
+      {{- end }}
+      {{- if .Values.backups.cron.ttlSecondsAfterFinished }}
+      ttlSecondsAfterFinished: {{ .Values.backups.cron.ttlSecondsAfterFinished }}
       {{- end }}
       template:
         metadata:
@@ -40,16 +46,12 @@ spec:
           {{- end }}
         spec:
           restartPolicy: {{ .Values.backups.cron.restartPolicy }}
-          {{- if .Values.tolerations }}
+          {{- $tolerations := default .Values.tolerations .Values.backups.cron.tolerations }}
+          {{- if $tolerations }}
           tolerations:
-            {{- toYaml .Values.tolerations | nindent 12 }}
+            {{- toYaml $tolerations | nindent 12 }}
           {{- end }}
-          securityContext:
-            runAsUser: {{ .Values.securityContext.runAsUser }}
-            fsGroup: {{ .Values.securityContext.fsGroup }}
-            {{- if not (empty .Values.securityContext.fsGroupChangePolicy) }}
-            fsGroupChangePolicy: {{ .Values.securityContext.fsGroupChangePolicy }}
-            {{- end }}
+          {{- include "gitlab.podSecurityContext" .Values.securityContext | nindent 10 }}
           {{- if or .Values.serviceAccount.enabled .Values.global.serviceAccount.enabled }}
           serviceAccountName: {{ include "gitlab.serviceAccount.name" . }}
           {{- end }}
@@ -61,9 +63,11 @@ spec:
               command: ['sh', '/config/configure']
               image: {{ include "gitlab.configure.image" (dict "root" $ "image" .Values.init.image) | quote }}
               {{- include "gitlab.image.pullPolicy" $initImageCfg | indent 14 }}
+              {{- include "gitlab.init.containerSecurityContext" . | indent 14 }}
               env:
+               {{- include "gitlab.timeZone.env" $ | nindent 16 }}
                 {{- include "gitlab.extraEnv" $ | nindent 16 }}
-                {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" (dict)) | nindent 16 }}
+                {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 16 }}
               volumeMounts:
                 {{- include "gitlab.extraVolumeMounts" . | nindent 16 }}
                 {{- include "gitlab.psql.ssl.volumeMount" . | nindent 16 }}
@@ -94,9 +98,11 @@ spec:
                  {{- end }}
               image: "{{ coalesce .Values.image.repository (include "image.repository" .) }}:{{ coalesce .Values.image.tag (include "gitlab.versionTag" . ) }}{{ include "gitlab.image.tagSuffix" . }}"
               {{- include "gitlab.image.pullPolicy" $imageCfg | indent 14 }}
+              {{- include "gitlab.containerSecurityContext" . | indent 14 }}
               env:
+                {{- include "gitlab.timeZone.env" . | nindent 16 }}
                 {{- include "gitlab.extraEnv" $ | nindent 16 }}
-                {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" (dict)) | nindent 16 }}
+                {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 16 }}
                 - name: ARTIFACTS_BUCKET_NAME
                   value: {{ .Values.global.appConfig.artifacts.bucket }}
                 - name: REGISTRY_BUCKET_NAME
@@ -191,8 +197,16 @@ spec:
                         path: shell/.gitlab_shell_secret
                 {{- include "gitlab.gitaly.clientSecrets" . | nindent 16 }}
                 {{- include "gitlab.redis.secrets" (dict "globalContext" $) | nindent 16 }}
+                {{- include "gitlab.redisSentinel.secret" $ | nindent 16 }}
                 {{- range $.Values.local.psql }}
                 {{- include "gitlab.psql.secret" . | nindent 16 }}
+                {{- end }}
+                {{- if include "gitlab.geo.secondary" $ }}
+                - secret:
+                    name: {{ template "gitlab.geo.psql.password.secret" . }}
+                    items:
+                      - key: {{ template "gitlab.geo.psql.password.key" . }}
+                        path: postgres/geo-psql-password
                 {{- end }}
                 - secret:
                     name: {{ template "gitlab.registry.certificate.secret" . }}
@@ -223,5 +237,10 @@ spec:
               emptyDir:
                 medium: "Memory"
             {{- include "gitlab.certificates.volumes" . | nindent 12 }}
-          {{- include "gitlab.nodeSelector" . | nindent 10 }}
+          {{- if .Values.backups.cron.nodeSelector }}
+          nodeSelector:
+            {{- toYaml .Values.backups.cron.nodeSelector | nindent 12 }}
+          {{- else }}
+          {{-   include "gitlab.nodeSelector" . | nindent 10 }}
+          {{- end }}
 {{- end }}
