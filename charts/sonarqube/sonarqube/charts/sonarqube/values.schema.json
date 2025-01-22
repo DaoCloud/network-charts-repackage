@@ -4,9 +4,92 @@
         "replicaCount"
     ],
     "properties": {
+        "persistence": {
+            "type": "object",
+            "properties": {
+                "volumes": {
+                    "type": "array",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `extraVolumes` instead"
+                },
+                "mounts": {
+                    "type": "array",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `extraVolumeMounts` instead"
+                }
+            }
+        },
+        "networkPolicy": {
+            "type": "object",
+            "properties": {
+                "additionalNetworkPolicys": {
+                    "type": "object",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `networkPolicy.additionalNetworkPolicies` instead"
+                }
+            }
+        },
+        "OpenShift": {
+            "type": "object",
+            "properties": {
+                "createSCC": {
+                    "type": "boolean",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) custom SCC are no longer required, the chart is compatible with default restricted SCCv2"
+                }
+            }
+        },
+        "jdbcOverwrite": {
+            "type": "object",
+            "properties": {
+                "enable": {
+                    "type": "boolean",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `jdbcOverwrite.enabled` instead"
+                },
+                "jdbcPassword": {
+                    "type": "string",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `jdbcOverwrite.jdbcSecretName` along with `jdbcOverwrite.jdbcSecretPasswordKey` instead"
+                }
+            }
+        },
+        "prometheusMonitoring": {
+            "type": "object",
+            "properties": {
+                "podMonitor": {
+                    "type": "object",
+                    "properties": {
+                        "namespace": {
+                            "type": "string",
+                            "deprecated": true,
+                            "$comment": "(DEPRECATED) This value should not be set, as the PodMonitor's namespace has to match the Release Namespace"
+                        }
+                    }
+                }
+            }
+        },
+        "nginx": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) Please use `ingress-nginx.enabled` instead"
+                }
+            }
+        },
+        "postgresql": {
+            "type": "object",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) Please use an external database instead of the embedded one. Please visit https://artifacthub.io/packages/helm/sonarqube/sonarqube#production-use-case for more information"
+        },
         "replicaCount": {
             "type": "integer",
-            "enum": [0, 1]
+            "enum": [
+                0,
+                1
+            ]
         },
         "jvmOpts": {
             "type": "string",
@@ -50,13 +133,65 @@
         },
         "account": {
             "type": "object",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) Please use `setAdminPassword` instead",
             "properties": {
+                "adminPassword": {
+                    "type": "string",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) please use `setAdminPassword.newPassword` at the value top level"
+                },
+                "currentAdminPassword": {
+                    "type": "string",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) please use `setAdminPassword.currentPassword` at the value top level"
+                },
+                "adminPasswordSecretName": {
+                    "type": "string",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) please use `setAdminPassword.passwordSecretName` at the value top level"
+                },
                 "sonarWebContext": {
                     "type": "string",
                     "deprecated": true,
                     "$comment": "(DEPRECATED) please use sonarWebContext at the value top level"
                 }
             }
+        },
+        "deploymentType": {
+            "type": "string",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) this option will be removed in the next major release"
+        },
+        "curlContainerImage": {
+            "type": "string",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) please use `setAdminPassword.image` at the value top level"
+        },
+        "adminJobAnnotations": {
+            "type": "object",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) please use `setAdminPassword.annotations` at the value top level"
+        },
+        "sonarqubeFolder": {
+            "type": "string",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) This value will is no longer required and will be dropped in future releases"
+        },
+        "terminationGracePeriodSeconds": {
+            "type": "integer",
+            "deprecated": true,
+            "$comment": "(DEPRECATED) This value is not used in the templates"
+        },
+        "deploymentStrategy": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "deprecated": true,
+                    "$comment": "(DEPRECATED) This will be removed in future releases and set to `Recreate`"
+                }
+            }
         }
     }
- }
+}
