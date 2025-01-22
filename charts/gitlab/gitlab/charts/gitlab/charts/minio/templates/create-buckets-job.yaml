@@ -27,13 +27,14 @@ spec:
       {{- end }}
 
     spec:
-      automountServiceAccountToken: false
+      {{- include "gitlab.automountServiceAccountToken" . | nindent 6 }}
       restartPolicy: OnFailure
       {{- include "gitlab.nodeSelector" . | nindent 6 }}
       {{- if .Values.tolerations }}
       tolerations:
         {{ toYaml .Values.tolerations | nindent 8 }}
       {{- end }}
+      {{- include "gitlab.podSecurityContext" .Values.securityContext | nindent 6 }}
       {{- include "gitlab.priorityClassName" . | nindent 6 }}
       volumes:
         - name: minio-configuration
@@ -49,7 +50,10 @@ spec:
         image: {{ .Values.minioMc.registry}}/{{ .Values.minioMc.image }}:{{ .Values.minioMc.tag }}
         {{- include "gitlab.image.pullPolicy" $imageCfg | indent 8 }}
         command: ["/bin/sh", "/config/initialize"]
+        {{- include "gitlab.containerSecurityContext" $ | indent 8 }}
         env:
+          - name: HOME
+            value: "/tmp"
           - name: MINIO_ENDPOINT
             value: {{ printf "%s-svc.%s.svc" (include "minio.fullname" .) .Release.Namespace }}
           - name: MINIO_PORT

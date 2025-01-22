@@ -1,14 +1,17 @@
-{{- if and .Values.global.kas.enabled .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled -}}
+{{- if and .Values.global.kas.enabled .Values.metrics.enabled .Values.metrics.podMonitor.enabled -}}
+{{- if .Values.metrics.serviceMonitor.enabled }}
+{{- fail "Both metrics.serviceMonitor.enabled and metrics.podMonitor.enabled cannot be set to true at the same time within the same subchart." }}
+{{- end }}
 {{- if eq (include "gitlab.monitoring.enabled" .) "true" -}}
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
-  name: {{ template "gitlab.kas.serviceName" . }}
+  name: {{ template "fullname" . }}
   namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "gitlab.standardLabels" . | nindent 4 }}
     {{- include "gitlab.commonLabels" . | nindent 4 }}
-  {{- with .Values.metrics.serviceMonitor.additionalLabels }}
+  {{- with .Values.metrics.podMonitor.additionalLabels }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
@@ -18,10 +21,10 @@ spec:
   selector:
     matchLabels:
       {{- include "kas.podSelectorLabels" . | nindent 6 }}
-  endpoints:
+  podMetricsEndpoints:
     - port: http-metrics
       path: {{ .Values.metrics.path }}
-    {{- with .Values.metrics.serviceMonitor.endpointConfig }}
+    {{- with .Values.metrics.podMonitor.endpointConfig }}
       {{- toYaml . | nindent 6 }}
     {{- end }}
 {{- end -}}
