@@ -3,7 +3,7 @@ export DAOCLOUD_REPO_PROJECT=addon
 export REPO_URL=https://charts.bitnami.com/bitnami
 export REPO_NAME=contour
 export CHART_NAME=contour
-export VERSION=12.1.1
+export VERSION=19.5.4
 
 export UPGRADE_METHOD=pr
 export UPGRADE_REVIWER=lou-lan
