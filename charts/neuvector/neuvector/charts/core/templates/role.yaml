@@ -1,4 +1,3 @@
-{{- if .Values.rbac -}}
 {{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
 {{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
 {{- if $oc3 }}
@@ -8,9 +7,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 {{- else }}
 apiVersion: v1
 {{- end }}
-kind: ClusterRole
+kind: Role
 metadata:
-  name: neuvector-binding-app
+  name: neuvector-binding-secret
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
@@ -18,49 +18,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - nodes
-  - pods
-  - services
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-
----
-
-{{- if $oc3 }}
-apiVersion: authorization.openshift.io/v1
-{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
-apiVersion: rbac.authorization.k8s.io/v1
-{{- else }}
-apiVersion: v1
-{{- end }}
-kind: ClusterRole
-metadata:
-  name: neuvector-binding-rbac
-  labels:
-    chart: {{ template "neuvector.chart" . }}
-    release: {{ .Release.Name }}
-rules:
-{{- if .Values.openshift }}
-- apiGroups:
-  - image.openshift.io
-  resources:
-  - imagestreams
-  verbs:
-  - get
-  - list
-  - watch
-{{- end }}
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  - roles
-  - clusterrolebindings
-  - clusterroles
+  - secrets
   verbs:
   - get
   - list
@@ -68,6 +26,7 @@ rules:
 
 ---
 
+{{- if .Values.internal.autoGenerateCert }}
 {{- if $oc3 }}
 apiVersion: authorization.openshift.io/v1
 {{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
@@ -75,43 +34,99 @@ apiVersion: rbac.authorization.k8s.io/v1
 {{- else }}
 apiVersion: v1
 {{- end }}
-kind: ClusterRole
+kind: Role
 metadata:
-  name: neuvector-binding-admission
+  name: neuvector-binding-lease
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
 rules:
 - apiGroups:
-  - admissionregistration.k8s.io
+  - coordination.k8s.io
   resources:
-  - validatingwebhookconfigurations
-  - mutatingwebhookconfigurations
+  - leases
   verbs:
-  - get
-  - list
-  - watch
   - create
+  - get
   - update
-  - delete
-
 ---
-
-{{- if $oc4 }}
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Role
 metadata:
-  name: neuvector-binding-co
+  name: neuvector-binding-job-creation
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
 rules:
 - apiGroups:
-  - config.openshift.io
+  - batch
   resources:
-  - clusteroperators
+  - jobs
+  verbs:
+  - create
+  - get
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - cronjobs/finalizers
+  verbs:
+  - update
+  - patch
+---
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Role
+metadata:
+  name: neuvector-binding-cert-upgrader
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - update
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
   verbs:
   - get
   - list
-{{- end }}
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - update
 {{- end }}

@@ -1,3 +1,11 @@
+{{- $pre530 := false -}}
+{{- if regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" .Values.tag }}
+{{- $pre530 = (semverCompare "<5.2.10-0" .Values.tag) -}}
+{{- end }}
+{{- $pre540 := false -}}                                                
+{{- if regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" .Values.tag }}               
+{{- $pre540 = (semverCompare "<5.3.10-0" .Values.tag) -}}                  
+{{- end }}    
 {{- if .Values.controller.enabled -}}
 {{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
 apiVersion: apps/v1
@@ -11,7 +19,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
 {{- with .Values.controller.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
@@ -32,10 +39,19 @@ spec:
         {{- with .Values.controller.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.controller.podAnnotations }}
       annotations:
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- if .Values.controller.secret.enabled }}
+        checksum/init-secret: {{ include (print $.Template.BasePath "/init-secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.controller.configmap.enabled }}
+        checksum/init-configmap: {{ include (print $.Template.BasePath "/init-configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if or (eq "true" (toString .Values.autoGenerateCert)) (and .Values.controller.certificate.key .Values.controller.certificate.certificate) }}
+        checksum/controller-secret: {{ include (print $.Template.BasePath "/controller-secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.controller.podAnnotations }}
+        {{- toYaml .Values.controller.podAnnotations | nindent 8 }}
+        {{- end }}
     spec:
       {{- if .Values.controller.affinity }}
       affinity:
@@ -44,6 +60,10 @@ spec:
       {{- if .Values.controller.tolerations }}
       tolerations:
 {{ toYaml .Values.controller.tolerations | indent 8 }}
+      {{- end }}
+      {{- if .Values.controller.topologySpreadConstraints }}
+      topologySpreadConstraints:
+{{ toYaml .Values.controller.topologySpreadConstraints | indent 8 }}
       {{- end }}
       {{- if .Values.controller.nodeSelector }}
       nodeSelector:
@@ -59,25 +79,52 @@ spec:
       {{- if .Values.controller.priorityClassName }}
       priorityClassName: {{ .Values.controller.priorityClassName }}
       {{- end }}
+      {{- if .Values.leastPrivilege }}
+      serviceAccountName: controller
+      serviceAccount: controller
+      {{- else }}
       serviceAccountName: {{ .Values.serviceAccount }}
       serviceAccount: {{ .Values.serviceAccount }}
+      {{- end }}
+      initContainers:
+      {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }}
+      {{- else if and .Values.internal.autoGenerateCert (not $pre540) }}
+        - name: init
+          image: {{ include "neuvector.controller.image" . | quote }}
+          command: ["/usr/local/bin/upgrader", "create-upgrader-job" ]
+          imagePullPolicy: {{ .Values.controller.certupgrader.imagePullPolicy }}
+          env:
+            - name: OVERRIDE_CHECKSUM
+              value: {{ dict "image" (include "neuvector.controller.image" .) "internal" .Values.internal "certupgrader" .Values.controller.certupgrader | toJson | sha256sum }}
+          {{- with .Values.controller.certupgrader.env }}
+{{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- end }}
+      {{- if  .Values.controller.prime.enabled }}
+        - name: prime-config-container
+          {{- if .Values.controller.prime.image.hash }}
+          image: "{{ .Values.registry }}/{{ .Values.controller.prime.image.repository }}@{{ .Values.controller.prime.image.hash }}"
+          {{- else }}
+          image: "{{ .Values.registry }}/{{ .Values.controller.prime.image.repository }}:{{ .Values.controller.prime.image.tag }}"
+          {{- end }}
+          imagePullPolicy: Always
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /usr/share
+            name: prime-config
+      {{- end }}
       containers:
         - name: neuvector-controller-pod
-          {{- if eq .Values.registry "registry.neuvector.com" }}
-          {{- if .Values.oem }}
-          image: "{{ .Values.registry }}/{{ .Values.oem }}/controller:{{ .Values.tag }}"
-          {{- else }}
-          image: "{{ .Values.registry }}/controller:{{ .Values.tag }}"
-          {{- end }}
-          {{- else }}
-          {{- if .Values.controller.image.hash }}
-          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}@{{ .Values.controller.image.hash }}"
-          {{- else }}
-          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
-          {{- end }}
-          {{- end }}
+          image: {{ include "neuvector.controller.image" . | quote }}
+          {{- if $pre530 }}
           securityContext:
             privileged: true
+          {{- else }}
+          securityContext:
+            runAsUser: 0
+          {{- end }}
           resources:
           {{- if .Values.controller.resources }}
 {{ toYaml .Values.controller.resources | indent 12 }}
@@ -112,13 +159,37 @@ spec:
             - name: CTRL_PERSIST_CONFIG
               value: "1"
           {{- end }}
+          {{- if .Values.global.aws.enabled }}
+            - name: CSP_ENV
+              value: "aws"
+          {{- end }}
+          {{- if .Values.global.azure.enabled }}
+            - name: CSP_ENV
+              value: "azure"
+          {{- end }}
+          {{- if .Values.global.azure.enabled }}
+            - name: NO_DEFAULT_ADMIN
+              value: "1"
+          {{- end }}
+          {{- if .Values.controller.searchRegistries }}
+            - name: CTRL_SEARCH_REGISTRIES
+              value: "{{ .Values.controller.searchRegistries }}"
+          {{- end }}
+          {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }}
+          {{- else if (and .Values.internal.autoGenerateCert (not $pre540))}}
+            - name: AUTO_INTERNAL_CERT
+              value: "1"
+          {{- end }}
           {{- with .Values.controller.env }}
 {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+           {{- if or .Values.controller.pvc.enabled .Values.controller.azureFileShare.enabled }}
             - mountPath: /var/neuvector
               name: nv-share
               readOnly: false
+          {{- end }}
+          {{- if $pre530 }}
           {{- if .Values.containerd.enabled }}
             - mountPath: /var/run/containerd/containerd.sock
           {{- else if .Values.k3s.enabled }}
@@ -138,20 +209,36 @@ spec:
             - mountPath: /host/cgroup
               name: cgroup-vol
               readOnly: true
+          {{- end }}
             - mountPath: /etc/config
               name: config-volume
               readOnly: true
+          {{- if .Values.controller.prime.enabled }}
+            - mountPath: /etc/neuvector/prime/compliance/
+              name: prime-config
+              readOnly: true
+          {{- end }}                
           {{- if .Values.controller.certificate.secret }}
             - mountPath: /etc/neuvector/certs/ssl-cert.key
               subPath: {{ .Values.controller.certificate.keyFile }}
-              name: cert
+              name: usercert
               readOnly: true
             - mountPath: /etc/neuvector/certs/ssl-cert.pem
               subPath: {{ .Values.controller.certificate.pemFile }}
+              name: usercert
+              readOnly: true
+          {{- else if or (eq "true" (toString .Values.autoGenerateCert)) (and .Values.controller.certificate.key .Values.controller.certificate.certificate) }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: ssl-cert.key
               name: cert
               readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: ssl-cert.pem
+              name: cert
+              readOnly: true
+          {{- else }}
           {{- end }}
-          {{- if .Values.controller.internal.certificate.secret }}
+          {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }} 
             - mountPath: /etc/neuvector/certs/internal/cert.key
               subPath: {{ .Values.controller.internal.certificate.keyFile }}
               name: internal-cert
@@ -164,10 +251,14 @@ spec:
               subPath: {{ .Values.controller.internal.certificate.caFile }}
               name: internal-cert
               readOnly: true
+          {{- else if and .Values.internal.autoRotateCert (not $pre540) }}
+            - mountPath: /etc/neuvector/certs/internal/
+              name: internal-cert-dir
           {{- end }}
       terminationGracePeriodSeconds: 300
       restartPolicy: Always
       volumes:
+        {{- if or .Values.controller.pvc.enabled .Values.controller.azureFileShare.enabled }}
         - name: nv-share
         {{- if .Values.controller.pvc.enabled }}
           persistentVolumeClaim:
@@ -177,10 +268,9 @@ spec:
             secretName: {{ .Values.controller.azureFileShare.secretName }}
             shareName: {{ .Values.controller.azureFileShare.shareName }}
             readOnly: false
-        {{- else }}
-          hostPath:
-            path: /var/neuvector
         {{- end }}
+        {{- end }}
+        {{- if $pre530 }}
         - name: runtime-sock
           hostPath:
           {{- if .Values.containerd.enabled }}
@@ -200,6 +290,7 @@ spec:
         - name: cgroup-vol
           hostPath:
             path: /sys/fs/cgroup
+        {{- end }}
         - name: config-volume
           projected:
             sources:
@@ -209,15 +300,31 @@ spec:
               - secret:
                   name: neuvector-init
                   optional: true
-      {{- if .Values.controller.certificate.secret }}
+              - secret:
+                  name: neuvector-secret
+                  optional: true
+      {{- if .Values.controller.prime.enabled }}
+        - emptyDir: {}
+          name: prime-config
+      {{- end }}            
+      {{- if or (eq "true" (toString .Values.autoGenerateCert)) (and .Values.controller.certificate.key .Values.controller.certificate.certificate) }}
         - name: cert
+          secret:
+            secretName: neuvector-controller-secret
+      {{- end }}
+      {{- if .Values.controller.certificate.secret }}
+        - name: usercert
           secret:
             secretName: {{ .Values.controller.certificate.secret }}
       {{- end }}
-      {{- if .Values.controller.internal.certificate.secret }}
+      {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }}
         - name: internal-cert
           secret:
             secretName: {{ .Values.controller.internal.certificate.secret }}
+      {{- else if and .Values.internal.autoRotateCert (not $pre540) }}
+        - name: internal-cert-dir
+          emptyDir:
+            sizeLimit: 50Mi
       {{- end }}
 {{- if gt (int .Values.controller.disruptionbudget) 0 }}
 ---

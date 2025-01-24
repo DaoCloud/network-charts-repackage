@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://neuvector.github.io/neuvector-helm
 export REPO_NAME=neuvector
 export CHART_NAME=core
-export VERSION=2.4.2
+export VERSION=2.8.4
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
