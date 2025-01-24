@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://istio-release.storage.googleapis.com/charts
 export REPO_NAME=istio
 export CHART_NAME=base
-export VERSION=1.17.1
+export VERSION=1.24.2
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
