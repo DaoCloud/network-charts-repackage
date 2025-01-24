@@ -5,24 +5,21 @@ metadata:
   name: "{{ .Release.Name }}-ui-test"
   annotations:
     "helm.sh/hook": test-success
-  labels:
-    app: {{ template "sonarqube.name" . }}
-    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+  labels: {{- include "sonarqube.labels" . | nindent 4 }}
 spec:
+  automountServiceAccountToken: false
   {{- if or .Values.image.pullSecrets .Values.image.pullSecret }}
   imagePullSecrets:
     {{- if .Values.image.pullSecret }}
     - name: {{ .Values.image.pullSecret }}
-    {{- end}}
-    {{- if .Values.image.pullSecrets}}
-{{ toYaml .Values.image.pullSecrets | indent 4 }}
-    {{- end}}
+    {{- end }}
+    {{- with .Values.image.pullSecrets }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
   containers:
     - name: {{ .Release.Name }}-ui-test
-      image: {{ default "docker.m.daocloud.io" .Values.image.registry }}/{{ default "library/sonarqube" .Values.image.repository }}:{{ default "10.2.0-community" .Values.image.tag }}
+      image: {{ .Values.tests.image | default (include "sonarqube.image" .) | quote }}
       imagePullPolicy: {{ .Values.image.pullPolicy }}
       command: ['wget']
       args: [
@@ -34,7 +31,8 @@ spec:
         '-qO-',
         '{{ template "sonarqube.fullname" . }}:{{ .Values.service.internalPort }}/api/system/status'
         ]
-      resources:
-{{ toYaml .Values.tests.resources | indent 8 }}
+      {{- with .Values.tests.resources }}
+      resources: {{- toYaml . | nindent 8 }}
+      {{- end }}
   restartPolicy: Never
 {{- end -}}

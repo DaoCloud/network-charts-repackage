@@ -1,14 +1,21 @@
+{{- if and .Values.persistence.enabled .Values.initFs.enabled (not .Values.OpenShift.enabled) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ template "sonarqube.fullname" . }}-init-fs
-  labels:
-    app: {{ template "sonarqube.name" . }}
-    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+  labels: {{- include "sonarqube.labels" . | nindent 4 }}
 data:
   init_fs.sh: |-
-    {{- if .Values.persistence.enabled }}
-    chown -R {{ .Values.persistence.uid }}: {{ .Values.sonarqubeFolder }}
+    chown -R {{ .Values.persistence.uid }}:{{ .Values.persistence.guid }} {{ .Values.sonarqubeFolder }}/data
+    chown -R {{ .Values.persistence.uid }}:{{ .Values.persistence.guid }} {{ .Values.sonarqubeFolder }}/temp
+    chown -R {{ .Values.persistence.uid }}:{{ .Values.persistence.guid }} {{ .Values.sonarqubeFolder }}/logs
+    {{- if or .Values.plugins.install (and .Values.jdbcOverwrite.oracleJdbcDriver .Values.jdbcOverwrite.oracleJdbcDriver.url) }}
+    chown -R {{ .Values.persistence.uid }}:{{ .Values.persistence.guid }} {{ .Values.sonarqubeFolder }}/extensions
     {{- end }}
+    {{- if .Values.caCerts.enabled }}
+    chown -R {{ .Values.persistence.uid }}:{{ .Values.persistence.guid }} {{ .Values.sonarqubeFolder }}/certs
+    {{- end }}
+    {{- range .Values.persistence.mounts }}
+    chown -R {{ $.Values.persistence.uid }}:{{ $.Values.persistence.guid }} {{ .mountPath }}
+    {{- end }}
+{{- end }}

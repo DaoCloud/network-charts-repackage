@@ -1,15 +1,19 @@
 # child values
 sonarqube:
-  # Default values for sonarqube.
+  # Default values for SonarQube.
   # This is a YAML-formatted file.
   # Declare variables to be passed into your templates.
 
-  # If the deployment Type is set to Deployment sonarqube is deployed as a replica set.
+  # (DEPRECATED) If the deployment Type is set to Deployment SonarQube is deployed as a replica set.
+  # This will be removed in a future release.
   deploymentType: "StatefulSet"
-  # There should not be more than 1 sonarqube instance connected to the same database. Please set this value to 1 or 0 (in case you need to scale down programmatically).
+  # There should not be more than 1 SonarQube instance connected to the same database. Please set this value to 1 or 0 (in case you need to scale down programmatically).
   replicaCount: 1
-  # This will use the default deployment strategy unless it is overriden
-  deploymentStrategy: {}
+  # How many revisions to retain (Deployment ReplicaSets or StatefulSets)
+  revisionHistoryLimit: 10
+  # (DEPRECATED) This will use the default deployment strategy unless it is overridden
+  deploymentStrategy:
+    type: Recreate
   # Uncomment this to scheduler pods on priority
   # priorityClassName: "high-priority"
 
@@ -18,31 +22,70 @@ sonarqube:
   ##
   # schedulerName:
 
-  ## Is this deployment for OpenShift? If so, we help with SCCs
+  ## OpenShift specific configuration
   OpenShift:
     enabled: false
-    createSCC: true
-  edition: "community"
+    # (Deprecated) this parameter should not be needed anymore, we support Openshift SCCv2 by default when Openshift.enabled=true
+    createSCC: false
+    route:
+      enabled: false
+      host: "sonarqube.your-org.com"
+      path: "/"
+      # Add tls section to secure traffic.
+      tls:
+        termination: edge
+        # certificate:
+        # key:
+        # caCertificate:
+        # insecureEdgeTerminationPolicy: Redirect
+      wildcardPolicy: None
+      annotations: {}
+      # See Openshift/OKD route annotation
+      # https://docs.openshift.com/container-platform/4.10/networking/routes/route-configuration.html#nw-route-specific-annotations_route-configuration
+      # haproxy.router.openshift.io/timeout: 1m
+      # Additional labels for Route manifest file
+      # labels:
+      #  external: 'true'
+  # Configure the edition of SonarQube Server to deploy: developer or enterprise
+  # edition: ""
+
+  # Set the chart to use the latest released SonarQube Community Build
+  community:
+    enabled: false
+    buildNumber: "25.1.0.102122"
   image:
     repository: library/sonarqube
-    tag: 10.2.0-community
+    # tag: "master"
     pullPolicy: IfNotPresent
     # If using a private repository, the imagePullSecrets to use
     # pullSecrets:
     #   - name: my-repo-secret
 
     registry: docker.m.daocloud.io
-  # Set security context for sonarqube pod
+    tag: 10.2.0-community
+  # Set security context for sonarqube pod.
+  # The current section contains the default values set in a generic Kubernetes cluster. If you are using OpenShift, you should not set any specific fsGroup.
   securityContext:
-    fsGroup: 1000
-  # Set security context for sonarqube container
+    fsGroup: 0
+  # Set security context for sonarqube container.
+  # The current section contains the default values set in a generic Kubernetes cluster. If you are using OpenShift, you should not set any specific UID or GID to be used for the execution.
   containerSecurityContext:
-    # Sonarqube dockerfile creates sonarqube user as UID and GID 1000
+    # Sonarqube dockerfile creates sonarqube user as UID and GID 0
+    # Those default are used to match pod security standard restricted as least privileged approach
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
     runAsUser: 1000
+    runAsGroup: 0
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop: ["ALL"]
+  #   readOnlyRootFilesystem: true
+
   # Settings to configure elasticsearch host requirements
   elasticsearch:
-    # DEPRECATED: Use initSysctl.enabled instead
-    configureNode: true
+    # (DEPRECATED) Use initSysctl.enabled instead
+    configureNode: false
     bootstrapChecks: true
   service:
     type: ClusterIP
@@ -55,6 +98,13 @@ sonarqube:
     # loadBalancerSourceRanges:
     #   - 0.0.0.0/0
     # loadBalancerIP: 1.2.3.4
+  # Those proxy settings will be propagated to the install-plugin and prometheus-exporter init containers
+  # if httpProxySecret is set the other one will be ignored
+  # the secret should contain exactly the keys http_proxy, https_proxy and no_proxy
+  httpProxySecret: ""
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""
   # Optionally create Network Policies
   networkPolicy:
     enabled: false
@@ -62,14 +112,48 @@ sonarqube:
     prometheusNamespace: "monitoring"
     # If you are using a external database and enable network Policies to be created
     # you will need to explicitly allow egress traffic to your database
-    # expects https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#networkpolicyspec-v1-networking-k8s-io
+    # (DEPRECATED) please use additionalNetworkPolicies instead
     # additionalNetworkPolicys:
+    # expects https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#networkpolicyspec-v1-networking-k8s-io
+    # additionalNetworkPolicies:
   # will be used as default for ingress path and probes path, will be injected in .Values.env as SONAR_WEB_CONTEXT
   # if .Values.env.SONAR_WEB_CONTEXT is set, this value will be ignored
   sonarWebContext: ""
-  # also install the nginx ingress helm chart
-  nginx:
+  # (DEPRECATED) please use ingress-nginx instead
+  # nginx:
+  #   enabled: false
+
+  # Install the nginx ingress helm chart
+  ingress-nginx:
     enabled: false
+    # You can add here any values from the official nginx ingress chart
+    # controller:
+    #   replicaCount: 3
+
+    controller:
+      image:
+        registry: k8s.m.daocloud.io
+      admissionWebhooks:
+        patch:
+          image:
+            registry: k8s.m.daocloud.io
+  httproute:
+    enabled: false
+    # gateway: my-gateway
+    # gatewayNamespace: my-gateway-namespace # optional
+    # labels:
+    #   somelabel: somevalue
+    # hostnames:
+    #   - sonarqube.your-org.com
+    # The rules are optional, by default we will create one with the SonarWebContext prefix and the SonarQube service values
+    # rules:
+    # - matches:
+    #   - path:
+    #       type: PathPrefix
+    #       value: /bar
+    #   backendRefs:
+    #   - name: my-service1
+    #     port: 8080
   ingress:
     enabled: false
     # Used to create an Ingress record.
@@ -82,14 +166,11 @@ sonarqube:
         # servicePort: somePort
         # the pathType can be one of the following values: Exact|Prefix|ImplementationSpecific(default)
         # pathType: ImplementationSpecific
-    annotations:
-      # kubernetes.io/tls-acme: "true"
-      # This property allows for reports up to a certain size to be uploaded to SonarQube
-      nginx.ingress.kubernetes.io/proxy-body-size: "64m"
-      # Set the ingressClassName on the ingress record
-      # ingressClassName: nginx
-    # Additional labels for Ingress manifest file
+    annotations: {}
+    # Set the ingressClassName on the ingress record
+    # ingressClassName: nginx
 
+    # Additional labels for Ingress manifest file
     # labels:
     #  traffic-type: external
     #  traffic-type: internal
@@ -98,21 +179,6 @@ sonarqube:
     # - secretName: chart-example-tls
     #   hosts:
     #     - chart-example.local
-  route:
-    enabled: false
-    host: ""
-    # Add tls section to secure traffic. TODO: extend this section with other secure route settings
-    # Comment this out if you want plain http route created.
-    tls:
-      termination: edge
-    annotations: {}
-    # See Openshift/OKD route annotation
-    # https://docs.openshift.com/container-platform/4.10/networking/routes/route-configuration.html#nw-route-specific-annotations_route-configuration
-    # haproxy.router.openshift.io/timeout: 1m
-  # Additional labels for Route manifest file
-  # labels:
-  #  external: 'true'
-
   # Affinity for pod assignment
   # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
@@ -142,6 +208,18 @@ sonarqube:
   #   - "www.example.com"
 
   readinessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - |
+          #!/bin/bash
+          # A Sonarqube container is considered ready if the status is UP, DB_MIGRATION_NEEDED or DB_MIGRATION_RUNNING
+          # status about migration are added to prevent the node to be kill while SonarQube is upgrading the database.
+          if wget --no-proxy -qO- http://localhost:{{ .Values.service.internalPort }}{{ .Values.readinessProbe.sonarWebContext | default (include "sonarqube.webcontext" .) }}api/system/status | grep -q -e '"status":"UP"' -e '"status":"DB_MIGRATION_NEEDED"' -e '"status":"DB_MIGRATION_RUNNING"'; then
+            exit 0
+          fi
+          exit 1
     initialDelaySeconds: 60
     periodSeconds: 30
     failureThreshold: 6
@@ -152,6 +230,12 @@ sonarqube:
     # deprecated please use sonarWebContext at the value top level
     # sonarWebContext: /
   livenessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - |
+          wget --no-proxy --quiet -O /dev/null --timeout={{ .Values.livenessProbe.timeoutSeconds }} --header="X-Sonar-Passcode: $SONAR_WEB_SYSTEMPASSCODE" "http://localhost:{{ .Values.service.internalPort }}{{ .Values.livenessProbe.sonarWebContext | default (include "sonarqube.webcontext" .) }}api/system/liveness"
     initialDelaySeconds: 60
     periodSeconds: 30
     failureThreshold: 6
@@ -172,10 +256,23 @@ sonarqube:
     # deprecated please use sonarWebContext at the value top level
     # sonarWebContext: /
   initContainers:
-    # image: busybox:1.32
+    # all initContainers use SonarQube image by default, but you can override it by setting the image field (ex image: ubuntu:24.04)
+    # image:
+    # Set the security context for the init containers
+    # The current section contains the default values set in a generic Kubernetes cluster. If you are using OpenShift, you should not set any specific UID or GID to be used for the execution.
     # We allow the init containers to have a separate security context declaration because
     # the initContainer may not require the same as SonarQube.
-    # securityContext: {}
+    # Those default are used to match pod security standard restricted as least privileged approach
+    securityContext:
+      allowPrivilegeEscalation: false
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 0
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop: ["ALL"]
+      readOnlyRootFilesystem: true
     # We allow the init containers to have a separate resources declaration because
     # the initContainer does not take as much resources.
     resources: {}
@@ -184,7 +281,7 @@ sonarqube:
     tag: "1.32"
   # Extra init containers to e.g. download required artifacts
   extraInitContainers: {}
-  ## Array of extra containers to run alongside the sonarqube container
+  ## Array of extra containers to run alongside the SonarQube container
   ##
   ## Example:
   ## - name: myapp-container
@@ -192,35 +289,61 @@ sonarqube:
   ##   command: ['sh', '-c', 'echo Hello && sleep 3600']
   ##
   extraContainers: []
+  extraVolumes: []
+  extraVolumeMounts: []
   ## Provide a secret containing one or more certificate files in the keys that will be added to cacerts
   ## The cacerts file will be set via SONARQUBE_WEB_JVM_OPTS and SONAR_CE_JAVAOPTS
   ##
   caCerts:
     enabled: false
-    image: adoptopenjdk/openjdk11:alpine
-    secret: your-secret
+    # image:
+    # secret: your-secret-name
+
     registry: docker.m.daocloud.io
     repository: adoptopenjdk/openjdk11
     tag: alpine
+  # Optionally, you can store your certificate in a ConfigMap and use it as:
+  # configMap:
+  #   name: my-custom-cacerts-certificate
+  #   key: key
+  #   path: my-certificate.crt
+
   initSysctl:
     enabled: true
     vmMaxMapCount: 524288
     fsFileMax: 131072
     nofile: 131072
     nproc: 8192
-    # image: busybox:1.32
+    # all initContainers use SonarQube image by default, but you can override it by setting the image field (ex image: ubuntu:24.04)
+    # image:
     securityContext:
+      # Compatible with podSecurity standard privileged
       privileged: true
+      # if run without root permissions, error "sysctl: permission denied on key xxx, ignoring"
+      runAsUser: 0
+      readOnlyRootFilesystem: true
     # resources: {}
 
     registry: docker.m.daocloud.io
     repository: library/busybox
     tag: "1.32"
+  # This should not be required anymore, used to chown/chmod folder created by faulty CSI driver that are not applying properly POSIX fsgroup.
   initFs:
     enabled: true
-    # image: busybox:1.32
+    # all initContainers use SonarQube image by default, but you can override it by setting the image field (ex image: ubuntu:24.04)
+    # image:
+    # Compatible with podSecurity standard baseline.
     securityContext:
-      privileged: true
+      privileged: false
+      runAsNonRoot: false
+      runAsUser: 0
+      runAsGroup: 0
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop: ["ALL"]
+        add: ["CHOWN"]
+      readOnlyRootFilesystem: true
     registry: docker.m.daocloud.io
     repository: library/busybox
     tag: "1.32"
@@ -242,15 +365,14 @@ sonarqube:
     # ceConfig:
     #   rules:
     #     - pattern: ".*"
-    # image: curlimages/curl:8.2.0
+    # image: curlimages/curl:8.2.1
     # For use behind a corporate proxy when downloading prometheus
     # httpProxy: ""
     # httpsProxy: ""
     # noProxy: ""
-    # Setting the security context to the default sonarqube user 1000/1000
-    securityContext:
-      runAsUser: 1000
-      runAsGroup: 1000
+    # Reuse default initcontainers.securityContext that match restricted pod security standard
+    # securityContext: {}
+
     registry: docker.m.daocloud.io
     repository: curlimages/curl
     tag: 8.2.0
@@ -260,14 +382,17 @@ sonarqube:
     podMonitor:
       # Create PodMonitor Resource for Prometheus scraping
       enabled: false
-      # Specify a custom namespace where the PodMonitor will be created
-      namespace: "default"
+      # (DEPRECATED) Specify a custom namespace where the PodMonitor will be created.
+      # This value should not be set, as the PodMonitor's namespace has to match the Release Namespace.
+      # namespace: "default"
       # Specify the interval how often metrics should be scraped
       interval: 30s
       # Specify the timeout after a scrape is ended
       # scrapeTimeout: ""
       # Name of the label on target services that prometheus uses as job name
       # jobLabel: ""
+      # Additional labels to add to the PodMonitor
+      # labels: {}
   # List of plugins to install.
   # For example:
   # plugins:
@@ -282,7 +407,7 @@ sonarqube:
     # httpsProxy: ""
     # noProxy: ""
 
-    # image: curlimages/curl:8.2.0
+    # image: curlimages/curl:8.2.1
     # resources: {}
 
     # .netrc secret file with a key "netrc" to use basic auth while downloading plugins
@@ -290,21 +415,19 @@ sonarqube:
 
     # Set to true to not validate the server's certificate to download plugin
     noCheckCertificate: false
-    securityContext:
-      runAsUser: 1000
-      runAsGroup: 1000
+    # Reuse default initcontainers.securityContext that match restricted pod security standard
+    # securityContext: {}
+
     registry: docker.m.daocloud.io
     repository: curlimages/curl
     tag: 8.2.0
-  ## (DEPRECATED) Please use SONAR_WEB_JAVAOPTS or sonar.web.javaOpts
-  ##
-  # jvmOpts: "-Djava.net.preferIPv4Stack=true"
+  ## (DEPRECATED) The following value sets SONAR_WEB_JAVAOPTS (e.g., jvmOpts: "-Djava.net.preferIPv4Stack=true"). However, this is deprecated, please set SONAR_WEB_JAVAOPTS or sonar.web.javaOpts directly instead.
   jvmOpts: ""
-  ## (DEPRECATED) Please use SONAR_CE_JAVAOPTS or sonar.ce.javaOpts
+  ## (DEPRECATED) The following value sets SONAR_CE_JAVAOPTS. However, this is deprecated, please set SONAR_CE_JAVAOPTS or sonar.ce.javaOpts directly instead.
   jvmCeOpts: ""
   ## a monitoring passcode needs to be defined in order to get reasonable probe results
   # not setting the monitoring passcode will result in a deployment that will never be ready
-  monitoringPasscode: "define_it"
+  # monitoringPasscode: "define_it"
   # Alternatively, you can define the passcode loading it from an existing secret specifying the right key
   # monitoringPasscodeSecretName: "pass-secret-name"
   # monitoringPasscodeSecretKey: "pass-key"
@@ -320,16 +443,19 @@ sonarqube:
 
   # Set annotations for pods
   annotations: {}
-  ## We usually don't make specific ressource recommandations, as they are heavily dependend on
-  ## The usage of SonarQube and the surrounding infrastructure.
-  ## Adjust these values to your needs, but make sure that the memory limit is never under 4 GB
+  ## We usually don't make specific resource recommendations, as they are heavily dependant on
+  ## the usage of SonarQube and the surrounding infrastructure.
+  ## Those default are based on the default Web -Xmx1G -Xms128m and CE -Xmx2G -Xms128m and Search -Xmx2G -Xms2G settings of SQ sub processes
+  ## Adjust these values to your needs, you can find more details on the main README of the chart.
   resources:
     limits:
       cpu: 800m
-      memory: 4Gi
+      memory: 6144M
+      ephemeral-storage: 512000M
     requests:
       cpu: 400m
-      memory: 2Gi
+      memory: 2048M
+      ephemeral-storage: 1536M
   persistence:
     enabled: false
     ## Set annotations on pvc
@@ -348,8 +474,11 @@ sonarqube:
     accessMode: ReadWriteOnce
     size: 5Gi
     uid: 1000
+    guid: 0
+    ## DEPRECATED please use root level extraVolumes value
     ## Specify extra volumes. Refer to ".spec.volumes" specification : https://kubernetes.io/fr/docs/concepts/storage/volumes/
     volumes: []
+    ## DEPRECATED please use root level extraVolumeMounts value
     ## Specify extra mounts. Refer to ".spec.containers.volumeMounts" specification : https://kubernetes.io/fr/docs/concepts/storage/volumes/
     mounts: []
   # In case you want to specify different resources for emptyDir than {}
@@ -368,7 +497,7 @@ sonarqube:
   # Additional sonar properties to load from a secret with a key "secret.properties" (must be a string)
   # sonarSecretProperties:
 
-  # Kubernetes secret that contains the encryption key for the sonarqube instance.
+  # Kubernetes secret that contains the encryption key for the SonarQube instance.
   # The secret must contain the key 'sonar-secret.txt'.
   # The 'sonar.secretKeyPath' property will be set automatically.
   # sonarSecretKey: "settings-encryption-secret"
@@ -376,19 +505,27 @@ sonarqube:
   ## Override JDBC values
   ## for external Databases
   jdbcOverwrite:
+    # (DEPRECATED) Please use jdbcOverwrite.enabled instead
+    # enable: false
     # If enable the JDBC Overwrite, make sure to set `postgresql.enabled=false`
-    enable: false
+    enabled: false
     # The JDBC url of the external DB
-    jdbcUrl: "jdbc:postgresql://myPostgress/myDatabase?socketTimeout=1500"
+    jdbcUrl: "jdbc:postgresql://myPostgress/myDatabase"
     # The DB user that should be used for the JDBC connection
     jdbcUsername: "sonarUser"
     # Use this if you don't mind the DB password getting stored in plain text within the values file
+    # (DEPRECATED) Please use `jdbcOverwrite.jdbcSecretName` along with `jdbcOverwrite.jdbcSecretPasswordKey` instead
     jdbcPassword: "sonarPass"
     ## Alternatively, use a pre-existing k8s secret containing the DB password
     # jdbcSecretName: "sonarqube-jdbc"
     ## and the secretValueKey of the password found within that secret
     # jdbcSecretPasswordKey: "jdbc-password"
-  ## Configuration values for postgresql dependency
+    # To install the oracle JDBC driver, set the following URL (in this example, we set the URL for the Oracle 11 driver. Please update it to your target driver URL.).
+    # If downloading the driver requires authentication, please set the .netrc secret file with a key "netrc" to use basic auth.
+    # oracleJdbcDriver:
+    #   url: "https://download.oracle.com/otn-pub/otn_software/jdbc/2113/ojdbc11.jar"
+    #   netrcCreds: ""
+  ## (DEPRECATED) Configuration values for postgresql dependency
   ## ref: https://github.com/bitnami/charts/blob/master/bitnami/postgresql/README.md
   postgresql:
     # Enable to deploy the bitnami PostgreSQL chart
@@ -428,22 +565,22 @@ sonarqube:
       size: 20Gi
       storageClass: ""
     securityContext:
-      # For standard Kubernetes deployment, set enabled=true
-      # If using OpenShift, enabled=false for restricted SCC and enabled=true for anyuid/nonroot SCC
       enabled: true
       # fsGroup specification below are not applied if enabled=false. enabled=false is the required setting for OpenShift "restricted SCC" to work successfully.
       # postgresql dockerfile sets user as 1001
       fsGroup: 1001
     containerSecurityContext:
-      # For standard Kubernetes deployment, set enabled=true
-      # If using OpenShift, enabled=false for restricted SCC and enabled=true for anyuid/nonroot SCC
       enabled: true
       # runAsUser specification below are not applied if enabled=false. enabled=false is the required setting for OpenShift "restricted SCC" to work successfully.
-      # postgresql dockerfile sets user as 1001
+      # postgresql dockerfile sets user as 1001, the rest aim at making it compatible with restricted pod security standard.
       runAsUser: 1001
+      allowPrivilegeEscalation: false
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop: ["ALL"]
     volumePermissions:
-      # For standard Kubernetes deployment, set enabled=false
-      # For OpenShift, set enabled=true and ensure to set volumepermissions.securitycontext.runAsUser below.
       enabled: false
       # if using restricted SCC set runAsUser: "auto" and if running under anyuid/nonroot SCC - runAsUser needs to match runAsUser above
       securityContext:
@@ -466,18 +603,25 @@ sonarqube:
   # podLabels:
   #   key: value
   podLabels: {}
-  # For compatibility with 8.0 replace by "/opt/sq"
-  # For compatibility with 8.2, leave the default. They changed it back to /opt/sonarqube
+  # (DEPRECATED) this field will be removed, as it needs to match the SonarQube image folder structure, considering we have one chart version per docker image version this field is not needed anymore.
   sonarqubeFolder: /opt/sonarqube
   tests:
     image: ""
     enabled: true
-    resources: {}
+    resources:
+      requests:
+        cpu: 500m
+        memory: 200M
+        ephemeral-storage: 100M
+      limits:
+        cpu: 500m
+        memory: 200M
+        ephemeral-storage: 1000M
   # For OpenShift set create=true to ensure service account is created.
   serviceAccount:
     create: false
     # name:
-    # automountToken: false # default
+    automountToken: false
     ## Annotations for the Service Account
     annotations: {}
   # extraConfig is used to load Environment Variables from Secrets and ConfigMaps
@@ -501,13 +645,34 @@ sonarqube:
   extraConfig:
     secrets: []
     configmaps: []
+  # setAdminPassword:
+  # The values can be set to define the current and the (new) custom admin passwords at the startup (the username will remain "admin")
+  #  newPassword: AdminAdmin_12$
+  #  currentPassword: admin
+  # The above values can be also provided by a secret that contains "password" and "currentPassword" as keys. You can generate such a secret in your cluster
+  # using "kubectl create secret generic admin-password-secret-name --from-literal=password=admin --from-literal=currentPassword=admin"
+  #  passwordSecretName: ""
+  # Reuse default initcontainers.securityContext that match restricted pod security standard
+  #  securityContext: {}
+  #  resources:
+  #    limits:
+  #      cpu: 100m
+  #      memory: 128Mi
+  #    requests:
+  #      cpu: 100m
+  #      memory: 128Mi
+  #  image:
+  #  annotations: {}
+
+  # (DEPRECATED) please use setAdminPassword instead
   # account:
   # The values can be set to define the current and the (new) custom admin passwords at the startup (the username will remain "admin")
-  #   adminPassword: admin
+  #   adminPassword: AdminAdmin_12$
   #   currentAdminPassword: admin
   # The above values can be also provided by a secret that contains "password" and "currentPassword" as keys. You can generate such a secret in your cluster
   # using "kubectl create secret generic admin-password-secret-name --from-literal=password=admin --from-literal=currentPassword=admin"
   #   adminPasswordSecretName: ""
+  # Reuse default initcontainers.securityContext that match restricted pod security standard
   #   securityContext: {}
   #   resources:
   #     limits:
@@ -516,16 +681,12 @@ sonarqube:
   #     requests:
   #       cpu: 100m
   #       memory: 128Mi
-  # curlContainerImage: curlimages/curl:8.2.0
+  # (DEPRECATED) please use setAdminPassword.image instead
+  # curlContainerImage: curlimages/curl:8.2.1
+  # (DEPRECATED) please use setAdminPassword.annotations instead
   # adminJobAnnotations: {}
   # deprecated please use sonarWebContext at the value top level
   #   sonarWebContext: /
+
+  # (DEPRECATED) This value is not used in the templates.
   terminationGracePeriodSeconds: 60
-  ingress-nginx:
-    controller:
-      image:
-        registry: k8s.m.daocloud.io
-      admissionWebhooks:
-        patch:
-          image:
-            registry: k8s.m.daocloud.io
