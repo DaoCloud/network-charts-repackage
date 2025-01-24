@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://argoproj.github.io/argo-helm
 export REPO_NAME=argo-cd
 export CHART_NAME=argo-cd
-export VERSION=7.4.4
+export VERSION=7.7.17
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
