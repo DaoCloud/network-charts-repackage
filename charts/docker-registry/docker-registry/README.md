@@ -35,7 +35,7 @@ their default values.
 |:----------------------------|:-------------------------------------------------------------------------------------------|:----------------|
 | `image.pullPolicy`          | Container pull policy                                                                      | `IfNotPresent`  |
 | `image.repository`          | Container image to use                                                                     | `registry`      |
-| `image.tag`                 | Container image tag to deploy                                                              | `2.7.1`         |
+| `image.tag`                 | Container image tag to deploy                                                              | `2.8.1`         |
 | `imagePullSecrets`          | Specify image pull secrets                                                                 | `nil` (does not add image pull secrets to deployed pods) |
 | `persistence.accessMode`    | Access mode to use for PVC                                                                 | `ReadWriteOnce` |
 | `persistence.enabled`       | Whether to use a PVC for the Docker storage                                                | `false`         |
@@ -46,6 +46,7 @@ their default values.
 | `serviceAccount.create`     | Create ServiceAccount                                                                      | `false`         |
 | `serviceAccount.name`       | ServiceAccount name                                                                        | `nil`           |
 | `serviceAccount.annotations` | Annotations to add to the ServiceAccount                                                  | `{}`            |
+| `deployment.annotations`    | Annotations to add to the Deployment                                                       | `{}`            |
 | `service.port`              | TCP port on which the service is exposed                                                   | `5000`          |
 | `service.type`              | service type                                                                               | `ClusterIP`     |
 | `service.clusterIP`         | if `service.type` is `ClusterIP` and this is non-empty, sets the cluster IP of the service | `nil`           |

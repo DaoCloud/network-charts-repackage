@@ -3,7 +3,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://helm.twun.io
 export REPO_NAME=twuni
 export CHART_NAME=docker-registry
-export VERSION=2.2.2
+export VERSION=2.2.3
 
 # pr, issue, none
 export UPGRADE_METHOD=pr

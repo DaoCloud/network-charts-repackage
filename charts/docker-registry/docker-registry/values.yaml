@@ -26,6 +26,8 @@ docker-registry:
     pullPolicy: IfNotPresent
   # imagePullSecrets:
       # - name: docker
+  deployment: {}
+    # annotations:
   service:
     name: registry
     type: ClusterIP
@@ -154,6 +156,9 @@ docker-registry:
         enabled: true
         interval: 10s
         threshold: 3
+  
+  containerSecurityContext:
+    enabled: false
   
   securityContext:
     enabled: true
