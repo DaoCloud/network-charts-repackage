@@ -1,6 +1,6 @@
 # node-problem-detector
 
-![Version: 2.3.1](https://img.shields.io/badge/Version-2.3.1-informational?style=flat-square) ![AppVersion: v0.8.12](https://img.shields.io/badge/AppVersion-v0.8.12-informational?style=flat-square)
+![Version: 2.3.14](https://img.shields.io/badge/Version-2.3.14-informational?style=flat-square) ![AppVersion: v0.8.19](https://img.shields.io/badge/AppVersion-v0.8.19-informational?style=flat-square)
 
 This chart installs a [node-problem-detector](https://github.com/kubernetes/node-problem-detector) daemonset. This tool aims to make various node problems visible to the upstream layers in cluster management stack. It is a daemon which runs on each node, detects node problems and reports them to apiserver.
 
@@ -56,9 +56,10 @@ helm install my-release deliveryhero/node-problem-detector -f values.yaml
 | fullnameOverride | string | `""` |  |
 | hostNetwork | bool | `false` | Run pod on host network Flag to run Node Problem Detector on the host's network. This is typically not recommended, but may be useful for certain use cases. |
 | hostPID | bool | `false` |  |
+| image.digest | string | `""` | the image digest. If given it takes precedence over a given tag. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"k8s.gcr.io/node-problem-detector/node-problem-detector"` |  |
-| image.tag | string | `"v0.8.12"` |  |
+| image.repository | string | `"registry.k8s.io/node-problem-detector/node-problem-detector"` |  |
+| image.tag | string | `"v0.8.19"` |  |
 | imagePullSecrets | list | `[]` |  |
 | labels | object | `{}` |  |
 | logDir.host | string | `"/var/log/"` | log directory on k8s host |
@@ -72,7 +73,9 @@ helm install my-release deliveryhero/node-problem-detector -f values.yaml
 | metrics.prometheusRule.defaultRules.disabled | list | `[]` |  |
 | metrics.prometheusRule.enabled | bool | `false` |  |
 | metrics.serviceMonitor.additionalLabels | object | `{}` |  |
+| metrics.serviceMonitor.additionalRelabelings | list | `[]` |  |
 | metrics.serviceMonitor.enabled | bool | `false` |  |
+| metrics.serviceMonitor.metricRelabelings | list | `[]` |  |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | priorityClassName | string | `"system-node-critical"` |  |
@@ -80,7 +83,9 @@ helm install my-release deliveryhero/node-problem-detector -f values.yaml
 | rbac.pspEnabled | bool | `false` |  |
 | resources | object | `{}` |  |
 | securityContext.privileged | bool | `true` |  |
+| serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |
+| serviceAccount.labels | object | `{}` |  |
 | serviceAccount.name | string | `nil` |  |
 | settings.custom_monitor_definitions | object | `{}` | Custom plugin monitor config files |
 | settings.custom_plugin_monitors | list | `[]` |  |
@@ -92,6 +97,7 @@ helm install my-release deliveryhero/node-problem-detector -f values.yaml
 | tolerations[0].effect | string | `"NoSchedule"` |  |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | string | `"RollingUpdate"` | Manage the daemonset update strategy |
+| volume.localtime.type | string | `"FileOrCreate"` |  |
 
 ## Maintainers
 

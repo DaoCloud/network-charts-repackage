@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://charts.deliveryhero.io
 export REPO_NAME=node-problem-detector
 export CHART_NAME=node-problem-detector
-export VERSION=2.3.1
+export VERSION=2.3.14
 # pr, issue, none
 export UPGRADE_METHOD=pr
 
