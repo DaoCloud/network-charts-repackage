@@ -1,5 +1,5 @@
 apiVersion: v1
-appVersion: "0.1"
+appVersion: 1.11.0
 description: A Helm chart for Volcano
 home: https://volcano.sh
 icon: https://raw.githubusercontent.com/volcano-sh/charts/master/docs/images/volcano-logo.png
@@ -11,10 +11,10 @@ maintainers:
 name: volcano
 sources:
   - https://github.com/volcano-sh/volcano
-version: 1.9.0
+version: 1.11.0
 dependencies:
   - name: volcano
-    version: "1.9.0"
+    version: "1.11.0"
     repository: "https://volcano-sh.github.io/helm-charts"
 keywords:
   - volcano
