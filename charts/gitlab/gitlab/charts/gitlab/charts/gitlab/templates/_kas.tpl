@@ -37,13 +37,7 @@ Returns the KAS external URL (for external agentk connections)
 {{- end -}}
 
 {{- define "gitlab.kas.internal.scheme" -}}
-{{- $tlsEnabled := "" -}}
-{{- if eq .Chart.Name "kas" -}}
-{{-    $tlsEnabled = .Values.privateApi.tls.enabled -}}
-{{-    printf "%s" (ternary "grpcs" "grpc" (or (eq $tlsEnabled true) (eq $.Values.global.kas.tls.enabled true))) -}}
-{{- else -}}
-{{-    printf "%s" (ternary "grpcs" "grpc" (eq $.Values.global.kas.tls.enabled true)) -}}
-{{- end -}}
+{{- printf "%s" (ternary "grpcs" "grpc" (eq $.Values.global.kas.tls.enabled true)) -}}
 {{- end -}}
 
 {{/*

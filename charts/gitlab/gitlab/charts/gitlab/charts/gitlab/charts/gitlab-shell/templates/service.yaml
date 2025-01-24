@@ -29,6 +29,9 @@ spec:
   {{- if or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer") }}
   externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
   {{- end }}
+  {{- if and (eq .Values.service.type "LoadBalancer") (hasKey .Values.service "allocateLoadBalancerNodePorts") }}
+  allocateLoadBalancerNodePorts: {{ .Values.service.allocateLoadBalancerNodePorts }}
+  {{- end }}
 {{- if .Values.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.service.loadBalancerIP }}
 {{- end }}

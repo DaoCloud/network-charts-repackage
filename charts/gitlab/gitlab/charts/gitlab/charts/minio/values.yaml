@@ -57,6 +57,11 @@ init:
   resources:
     requests:
       cpu: 50m
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
 ## Set default Minio config file path, volume mount path and
 ## number of nodes (only used for Minio distributed mode)
 ## Distributed Minio ref: https://docs.minio.io/docs/distributed-minio-quickstart-guide
@@ -238,8 +243,20 @@ securityContext:
   runAsUser: 1000
   fsGroup: 1000
   # fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: "RuntimeDefault"
+containerSecurityContext:
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
 deployment:
   strategy:
     type: Recreate
     rollingUpdate: null
+serviceAccount: {}
+## Used for local override of global ServiceAccount token mounting
+# automountServiceAccountToken: false
+
 registry: docker.m.daocloud.io

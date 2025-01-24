@@ -31,22 +31,25 @@ data:
     prometheus_listen_addr = "0.0.0.0:{{ default .Values.metrics.port .Values.metrics.metricsPort }}"
     {{- end }}
 
+    # Graceful shutdown timeout, how long to wait for in-flight requests to complete
+    graceful_restart_timeout = "{{ .Values.gracefulRestartTimeout | toString | duration }}"
+
     {{- if $.Values.global.gitaly.tls.enabled }}
     [tls]
     certificate_path = '/etc/gitlab-secrets/gitaly/gitaly.crt'
     key_path = '/etc/gitlab-secrets/gitaly/gitaly.key'
     {{- end }}
 
+    # Storage configuration
     {{- if .storage }}
 
     {{- /*
     Passing in "skipStorages=true" below prevents changes in the Gitaly replica counts from modifying
     the contents of the ConfigMap, which would cause existing pods to restart unnecessarily.
     */}}
-    {{ if not .skipStorages }}
+    {{- if not .skipStorages }}
     {% $storages := coll.Slice {{ include "gitlab.praefect.gitaly.storageNames" . }} %}
     {{- end }}
-
     {% $hostname := .Env.HOSTNAME | strings.TrimSpace %}
     {% if coll.Has $storages $hostname %}
     [[storage]]
@@ -62,10 +65,9 @@ data:
     Passing in "skipStorages=true" below prevents changes in the Gitaly replica counts from modifying
     the contents of the ConfigMap, which would cause existing pods to restart unnecessarily.
     */}}
-    {{ if not .skipStorages }}
+    {{- if not .skipStorages }}
     {% $storages := coll.Slice {{ include "gitlab.gitaly.storageNames" . }} %}
     {{- end }}
-
     {% $index := index (.Env.HOSTNAME | strings.Split "-" | coll.Reverse) 0 | conv.ToInt64 %}
     {% if len $storages | lt $index %}
     [[storage]]
@@ -161,7 +163,55 @@ data:
     dir = {{ .dir | quote }}
     {{-     end }}
     {{-     if .max_age }}
-    max_age = {{ .max_age }}
+    max_age = {{ .max_age | quote }}
+    {{-     end }}
+    {{-     if .min_occurrences }}
+    min_occurrences = {{ .min_occurrences }}
+    {{-     end }}
+    {{-   end }}
+    {{- end }}
+
+    {{- if .Values.backup.goCloudUrl }}
+    [backup]
+    go_cloud_url = "{{ .Values.backup.goCloudUrl }}"
+    {{- end }}
+
+    {{- if .Values.cgroups.enabled }}
+    {{-   with .Values.cgroups }}
+    [cgroups]
+    {{-     if .mountpoint }}
+    mountpoint = "{{ .mountpoint }}"
+    {{-     end }}
+    {{-     if .hierarchyRoot }}
+    hierarchy_root = {{ .hierarchyRoot | quote }}
+    {{-     end }}
+    {{-     if .memoryBytes }}
+    memory_bytes = {{ .memoryBytes | int64 }}
+    {{-     end }}
+    {{-     if .cpuShares }}
+    cpu_shares = {{ .cpuShares | int64 }}
+    {{-     end }}
+    {{-     if .cpuQuotaUs }}
+    cpu_quota_us = {{ .cpuQuotaUs | int64 }}
+    {{-     end }}
+    {{-  end }}
+
+    {{-   with .Values.cgroups.repositories }}
+    [cgroups.repositories]
+    {{-     if .count }}
+    count = {{ .count | int64 }}
+    {{-     end }}
+    {{-     if .memoryBytes }}
+    memory_bytes = {{ .memoryBytes | int64 }}
+    {{-     end }}
+    {{-     if .cpuShares }}
+    cpu_shares = {{ .cpuShares | int64 }}
+    {{-     end }}
+    {{-     if .cpuQuotaUs }}
+    cpu_quota_us = {{ .cpuQuotaUs | int64 }}
+    {{-     end }}
+    {{-     if .maxCgroupsPerRepo }}
+    max_cgroups_per_repo = {{ .maxCgroupsPerRepo | int64 }}
     {{-     end }}
     {{-   end }}
     {{- end }}

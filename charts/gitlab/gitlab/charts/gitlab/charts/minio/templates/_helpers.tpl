@@ -28,14 +28,10 @@ Return the appropriate apiVersion for networkpolicy.
 
 {{/*
 Create a default fully qualified job name for creating default buckets.
-Due to the job only being allowed to run once, we add the chart revision so helm
-upgrades don't cause errors trying to create the already ran job.
-Due to the helm delete not cleaning up these jobs, we add a random value to
-reduce collision
 */}}
 {{- define "minio.createBucketsJobName" -}}
 {{- $name := include "minio.fullname" . | trunc 40 | trimSuffix "-" -}}
-{{- printf "%s-create-buckets-%d" $name .Release.Revision -}}
+{{- printf "%s-create-buckets-%s" $name ( include "gitlab.jobNameSuffix" . ) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*

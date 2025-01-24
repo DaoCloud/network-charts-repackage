@@ -11,8 +11,9 @@
   {{- include "gitlab.image.pullPolicy" $imageCfg | indent 2 }}
   {{- include "gitlab.init.containerSecurityContext" . | indent 2 }}
   env:
+  {{- include "gitlab.timeZone.env" . | nindent 2 }}
   {{- include "gitlab.extraEnv" . | nindent 2 }}
-  {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" (dict)) | nindent 2 }}
+  {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 2 }}
   volumeMounts:
   - name: etc-ssl-certs
     mountPath: /etc/ssl/certs

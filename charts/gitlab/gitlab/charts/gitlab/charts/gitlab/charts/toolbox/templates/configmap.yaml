@@ -15,6 +15,8 @@ data:
   click_house.yml.erb: |
     {{- include "gitlab.clickhouse.yml" . | nindent 4 }}
   {{- end }}
+  session_store.yml.erb: |
+    {{- include "gitlab.session_store.yml" . | nindent 4 }}
   krb5.conf: |
     {{- .Values.global.appConfig.kerberos.krb5Config | nindent 4 }}
   smtp_settings.rb: |
@@ -72,6 +74,7 @@ data:
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "external_diffs" "config" $.Values.global.appConfig.externalDiffs) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "terraform_state" "config" $.Values.global.appConfig.terraformState) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "dependency_proxy" "config" $.Values.global.appConfig.dependencyProxy) | nindent 10 -}}
+          {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "ci_secure_files" "config" $.Values.global.appConfig.ciSecureFiles) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "pages" "config" $.Values.global.pages.objectStore) | nindent 10 -}}
       {{- end }}
       {{- include "gitlab.appConfig.artifacts.configuration" (dict "config" $.Values.global.appConfig.artifacts "context" $) | nindent 6 }}
@@ -150,11 +153,18 @@ data:
     fi
     {{- end }}
   configure-gsutil: |
-    # The following script is used to configure gsutil when creating backups
-    # It provides inputs to the `gsutil config -e` prompt as follows:
-    # 1) Path to service account JSON key file
-    # 2) Do not set permissions for key file
-    # 3) GCP Project ID
-    # 4) Decline anonymous usage statistics
-    printf "$GOOGLE_APPLICATION_CREDENTIALS\nN\n{{ .Values.backups.objectStorage.config.gcpProject }}\nN\n" | gsutil config -e
+    if [ -e "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+      # The following script is used to configure gsutil when creating backups
+      # It provides inputs to the `gsutil config -e` prompt as follows:
+      # 1) Path to service account JSON key file
+      # 2) Do not set permissions for key file
+      # 3) GCP Project ID
+      # 4) Decline anonymous usage statistics
+      printf "$GOOGLE_APPLICATION_CREDENTIALS\nN\n{{ .Values.backups.objectStorage.config.gcpProject }}\nN\n" | gsutil config -e
+    else
+      # If the backup config is not configured, assume that
+      # Application Default Credentials are used with a service account.
+      # This enables GKE Workload Identity Federation to work.
+      echo '[GoogleCompute]\nservice_account = default' > ~/.boto
+    fi
 {{- end }}

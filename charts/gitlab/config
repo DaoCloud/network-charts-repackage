@@ -3,7 +3,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://charts.gitlab.io/
 export REPO_NAME=gitlab
 export CHART_NAME=gitlab
-export VERSION=7.5.0
+export VERSION=8.8.1
 # push to daocloud repo
 export DAOCLOUD_REPO_PROJECT=community
 export CUSTOM_SHELL=custom.sh

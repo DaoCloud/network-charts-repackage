@@ -27,11 +27,16 @@ image:
   tag: v16.5.0
 service:
   tls: {}
+  type: ClusterIP
+  clusterIP: None
 annotations: {}
 common:
   labels: {}
 podLabels: {}
 serviceLabels: {}
+# Allows process namespace sharing within the pod
+# This makes processes in a container visible to all other containers in the same pod.
+shareProcessNamespace: false
 init:
   image: {}
   # repository:
@@ -39,11 +44,40 @@ init:
   resources:
     requests:
       cpu: 50m
-  containerSecurityContext: {}
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
+# Gitaly built-in cgroups, spawns Git processes into a cgroup per repository, protecting the service/pod from OOM events
+# ref: https://docs.gitlab.com/ee/administration/gitaly/configure_gitaly.html#control-groups
+cgroups:
+  enabled: false
+  initContainer:
+    image:
+      repository: registry.gitlab.com/gitlab-org/build/cng/gitaly-init-cgroups
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+  mountpoint: '{% file.Read "/etc/gitlab-secrets/gitaly-pod-cgroup" | strings.TrimSpace %}'
+  hierarchyRoot: gitaly
+  # memoryBytes:
+  # cpuShares:
+  # cpuQuotaUs:
+  repositories: {}
+  # count:
+  # memoryBytes:
+  # cpuShares:
+  # cpuQuotaUs:
+  # maxCgroupsPerRepo:
 ## Support for tolerations for pod scheduling
 tolerations: []
 ## The Gitaly StatefulSet's priorityClassName
 # priorityClassName:
+
+# Gitaly shutdown grace period, how long to wait for in-flight requests to complete (seconds)
+# Pod `terminationGracePeriodSeconds` is set to this value + 5 seconds
+gracefulRestartTimeout: 25
 logging:
   format: "json"
   # level:
@@ -55,6 +89,7 @@ git: {}
 ## commands. Accepts configuration as documented in git-config(1).
 # config:
 #   - {key: "pack.threads", value: 4}
+
 prometheus: {}
 # grpcLatencyBuckets: "[1.0, 1.5, 2.0, 2.5]"
 
@@ -109,6 +144,7 @@ persistence:
   ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#selector
   matchExpressions: []
   annotations: {}
+  labels: {}
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
@@ -130,30 +166,46 @@ securityContext:
 ## Allow to overwrite the specific security context under which the gitaly container is running.
 containerSecurityContext:
   runAsUser: 1000
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
 ## Enable deployment to use a serviceAccount
 serviceAccount:
   enabled: false
   create: false
   annotations: {}
+  ## Used for local override of global ServiceAccount token mounting
+  # automountServiceAccountToken: false
   ## Name to be used for serviceAccount, otherwise defaults to chart fullname
   # name:
 statefulset:
   strategy: {}
   livenessProbe:
-    initialDelaySeconds: 30
+    initialDelaySeconds: 0
     periodSeconds: 10
     timeoutSeconds: 3
     successThreshold: 1
     failureThreshold: 3
   readinessProbe:
-    initialDelaySeconds: 10
-    periodSeconds: 10
+    initialDelaySeconds: 0
+    periodSeconds: 5
     timeoutSeconds: 3
     successThreshold: 1
     failureThreshold: 3
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 1
+    periodSeconds: 1
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 60
 affinity:
   podAntiAffinity:
     topologyKey:
+  nodeAffinity:
+    key:
+    values:
 ## Enable the Gitaly pack-objects cache
 ## ref: https://docs.gitlab.com/ee/administration/gitaly/configure_gitaly.html#pack-objects-cache
 packObjectsCache: {}
@@ -167,3 +219,10 @@ gpgSigning: {}
 # enabled: false
 # secret: glGPG
 # key:
+
+backup: {}
+# goCloudUrl:
+
+# default enable gomemlimit to avoid gc related OOM errors
+gomemlimit:
+  enabled: true

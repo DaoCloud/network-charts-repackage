@@ -5,18 +5,43 @@ Render a Redis `resque` format configuration for Rails.
 Input: dict "context" $ "name" string
 */}}
 {{- define "gitlab.rails.redis.yaml" -}}
+{{- $connect_timeout := include "gitlab.redis.connectTimeout" .context }}
+{{- $read_timeout := include "gitlab.redis.readTimeout" .context  }}
+{{- $write_timeout := include "gitlab.redis.writeTimeout" .context }}
 {{- if $cluster := include "gitlab.redis.cluster" .context -}}
 {{ .name }}.yml.erb: |
   production:
     {{- include "gitlab.redis.cluster.user" .context | nindent 4 }}
     {{- include "gitlab.redis.cluster.password" .context | nindent 4 }}
     {{- $cluster | nindent 4 }}
+    {{- if $connect_timeout }}
+    connect_timeout: {{ $connect_timeout }}
+    {{- end }}
+    {{- if $read_timeout }}
+    read_timeout: {{ $read_timeout }}
+    {{- end }}
+    {{- if $write_timeout }}
+    write_timeout: {{ $write_timeout }}
+    {{- end }}
     id:
 {{- else -}}
 {{ .name }}.yml.erb: |
   production:
     url: {{ template "gitlab.redis.url" .context }}
+    {{- if $connect_timeout }}
+    connect_timeout: {{ $connect_timeout }}
+    {{- end }}
+    {{- if $read_timeout }}
+    read_timeout: {{ $read_timeout }}
+    {{- end }}
+    {{- if $write_timeout }}
+    write_timeout: {{ $write_timeout }}
+    {{- end }}
     {{- include "gitlab.redis.sentinels" .context | nindent 4 }}
+    {{- $password := include "gitlab.redis.sentinel.password" .context }}
+    {{- if $password }}
+    sentinel_password: "{{- include "gitlab.redis.sentinel.password" .context }}"
+    {{- end }}
     id:
     {{- if eq .name "cable" }}
     adapter: redis

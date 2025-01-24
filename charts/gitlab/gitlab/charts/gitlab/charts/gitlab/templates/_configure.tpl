@@ -11,7 +11,7 @@
 */}}
 {{- define "gitlab.scripts.configure.secrets" -}}
 {{- $required := default "shell gitaly registry rails-secrets gitlab-workhorse" $.required | splitList " " -}}
-{{- $optional := default "redis minio objectstorage postgres ldap duo omniauth smtp kas pages oauth-secrets mailroom gitlab-exporter microsoft_graph_mailer suggested_reviewers zoekt clickhouse" $.optional | splitList " " -}}
+{{- $optional := default "redis redis-sentinel minio objectstorage postgres ldap duo omniauth smtp kas pages oauth-secrets mailroom gitlab-exporter microsoft_graph_mailer suggested_reviewers zoekt clickhouse" $.optional | splitList " " -}}
 {{- range (without $required "none") -}}
 {{- $optional = without $optional . -}}
 {{- end -}}

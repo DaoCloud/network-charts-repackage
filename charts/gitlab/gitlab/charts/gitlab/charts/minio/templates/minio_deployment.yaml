@@ -35,7 +35,7 @@ spec:
 {{ toYaml .Values.podAnnotations | trimSuffix "\n" | indent 8 }}
 {{- end }}
     spec:
-      automountServiceAccountToken: false
+      {{- include "gitlab.automountServiceAccountToken" . | nindent 6 }}
       {{- include "gitlab.nodeSelector" . | nindent 6 }}
       {{- if .Values.tolerations }}
       tolerations:
@@ -71,12 +71,15 @@ spec:
         - name: configure
           image: {{ include "gitlab.configure.image" (dict "root" $ "image" .Values.init.image) | quote }}
           {{- include "gitlab.image.pullPolicy" $initImageCfg | indent 10 }}
+          {{- include "gitlab.init.containerSecurityContext" $ | indent 10 }}
           command: ["sh", "/config/configure"]
           volumeMounts:
             - name: minio-configuration
               mountPath: /config
             - name: minio-server-config
               mountPath: /minio
+          env:
+            {{- include "gitlab.timeZone.env" . | nindent 12 }}
           resources:
 {{ toYaml .Values.init.resources | indent 12 }}
       {{- include "gitlab.image.pullSecrets" $imageCfg | indent 6}}
@@ -85,6 +88,9 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.image }}:{{ .Values.imageTag }}
           {{- include "gitlab.image.pullPolicy" $imageCfg | indent 10 }}
           args: ["-C", "{{ default "/tmp/.minio" .Values.configPath }}", "--quiet", "server", "{{ .Values.mountPath }}"]
+          {{- include "gitlab.containerSecurityContext" $ | indent 10 }}
+          env:
+            {{- include "gitlab.timeZone.env" $ | nindent 10 }}
           volumeMounts:
             - name: export
               mountPath: {{ .Values.mountPath }}

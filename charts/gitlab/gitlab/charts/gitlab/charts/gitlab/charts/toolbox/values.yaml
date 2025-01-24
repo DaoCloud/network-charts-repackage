@@ -14,15 +14,24 @@ init:
   resources:
     requests:
       cpu: 50m
-  containerSecurityContext: {}
+  containerSecurityContext:
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
 # Tolerations for pod scheduling
 tolerations: []
 extraEnv: {}
+extraEnvFrom: {}
 antiAffinityLabels:
   matchLabels: {}
 affinity:
   podAntiAffinity:
     topologyKey:
+  nodeAffinity:
+    key:
+    values:
 common:
   labels: {}
 enabled: true
@@ -139,6 +148,7 @@ backups:
     suspend: false
     backoffLimit: 6
     # activeDeadlineSeconds:
+    # ttlSecondsAfterFinished:
     safeToEvict: false
     restartPolicy: "OnFailure"
     extraArgs: ""
@@ -238,16 +248,25 @@ persistence:
 ## Allow to overwrite under which User and Group the Pod will be running.
 securityContext:
   runAsUser: 1000
+  runAsGroup: 1000
   fsGroup: 1000
   # fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: "RuntimeDefault"
 ## Allow to overwrite the specific security context under which the container is running.
 containerSecurityContext:
   runAsUser: 1000
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
 ## Enable deployment to use a serviceAccount
 serviceAccount:
   enabled: false
   create: false
   annotations: {}
+  ## Used for local override of global ServiceAccount token mounting
+  # automountServiceAccountToken: false
   ## Name to be used for serviceAccount, otherwise defaults to chart fullname
   # name:
 deployment:

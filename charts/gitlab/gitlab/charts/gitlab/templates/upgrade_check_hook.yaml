@@ -47,7 +47,7 @@ spec:
 
     spec:
       {{- if .Values.upgradeCheck.nodeSelector }}
-        nodeSelector: {{ toYaml .Values.upgradeCheck.nodeSelector | nindent 8 }}
+      nodeSelector: {{ toYaml .Values.upgradeCheck.nodeSelector | nindent 8 }}
       {{- else }}
       {{- include "gitlab.nodeSelector" . | nindent 6 }}
       {{- end }}
@@ -58,9 +58,7 @@ spec:
       tolerations:
         {{- toYaml .Values.upgradeCheck.tolerations | nindent 8 }}
       {{- end }}
-      securityContext:
-        runAsUser: {{ .Values.upgradeCheck.securityContext.runAsUser }}
-        fsGroup: {{ .Values.upgradeCheck.securityContext.fsGroup }}
+      {{- include "gitlab.podSecurityContext" .Values.upgradeCheck.securityContext | nindent 6 }}
       restartPolicy: Never
       {{- include "gitlab.image.pullSecrets" $imageCfg | nindent 6}}
       containers:
@@ -68,6 +66,10 @@ spec:
           image: {{ include "gitlab.configure.image" (dict "root" $ "image" .Values.upgradeCheck.image) | quote }}
           command: ['/bin/sh', '/scripts/runcheck']
           {{- include "gitlab.image.pullPolicy" $imageCfg | indent 10 }}
+          {{- if .Values.upgradeCheck.containerSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.upgradeCheck.containerSecurityContext | nindent 12 }}
+          {{- end }}
           env:
             - name: GITLAB_VERSION
               value: '{{ coalesce .Values.global.gitlabVersion .Chart.AppVersion }}'

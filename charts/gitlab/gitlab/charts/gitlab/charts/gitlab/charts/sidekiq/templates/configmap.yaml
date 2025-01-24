@@ -17,6 +17,8 @@ data:
   click_house.yml.erb: |
     {{- include "gitlab.clickhouse.yml" . | nindent 4 }}
   {{- end }}
+  session_store.yml.erb: |
+    {{- include "gitlab.session_store.yml" . | nindent 4 }}
   krb5.conf: |
     {{- .Values.global.appConfig.kerberos.krb5Config | nindent 4 }}
   smtp_settings.rb: |
@@ -84,6 +86,7 @@ data:
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "external_diffs" "config" $.Values.global.appConfig.externalDiffs) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "terraform_state" "config" $.Values.global.appConfig.terraformState) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "dependency_proxy" "config" $.Values.global.appConfig.dependencyProxy) | nindent 10 -}}
+          {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "ci_secure_files" "config" $.Values.global.appConfig.ciSecureFiles) | nindent 10 -}}
           {{- include "gitlab.appConfig.objectStorage.object" (dict "name" "pages" "config" $.Values.global.pages.objectStore) | nindent 10 -}}
       {{- end }}
       {{- include "gitlab.appConfig.artifacts.configuration" (dict "config" $.Values.global.appConfig.artifacts "context" $) | nindent 6 }}

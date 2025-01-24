@@ -32,6 +32,16 @@ to 6379 default
 {{- end -}}
 
 {{/*
+Return the redis database
+If the redis database is provided, it will use that, otherwise it will fallback
+to 0 default
+*/}}
+{{- define "gitlab.redis.database" -}}
+{{- include "gitlab.redis.configMerge" . -}}
+{{- default 0 .redisMergedConfig.database -}}
+{{- end -}}
+
+{{/*
 Return the redis scheme, or redis. Allowing people to use rediss clusters
 */}}
 {{- define "gitlab.redis.scheme" -}}
@@ -49,7 +59,34 @@ Return the redis scheme, or redis. Allowing people to use rediss clusters
 Return the redis url.
 */}}
 {{- define "gitlab.redis.url" -}}
-{{ template "gitlab.redis.scheme" . }}://{{ template "gitlab.redis.url.user" . }}{{ template "gitlab.redis.url.password" . }}{{ template "gitlab.redis.host" . }}:{{ template "gitlab.redis.port" . }}
+{{ template "gitlab.redis.scheme" . }}://{{ template "gitlab.redis.url.user" . }}{{ template "gitlab.redis.url.password" . }}{{ template "gitlab.redis.host" . }}:{{ template "gitlab.redis.port" . }}/{{ template "gitlab.redis.database" . }}
+{{- end -}}
+
+{{/*
+Return the Redis connection timeout.
+*/}}
+{{- define "gitlab.redis.connectTimeout" -}}
+{{- if .Values.global.redis.connectTimeout -}}
+{{ .Values.global.redis.connectTimeout }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the Redis read timeout.
+*/}}
+{{- define "gitlab.redis.readTimeout" -}}
+{{- if .Values.global.redis.readTimeout -}}
+{{ .Values.global.redis.readTimeout }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the Redis write timeout.
+*/}}
+{{- define "gitlab.redis.writeTimeout" -}}
+{{- if .Values.global.redis.writeTimeout -}}
+{{ .Values.global.redis.writeTimeout }}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -70,17 +107,31 @@ Return the password section of the Redis URI, if needed.
 {{- end -}}
 
 {{/*
+Return the Sentinel password, if available.
+*/}}
+{{- define "gitlab.redis.sentinel.password" -}}
+{{- if $.Values.global.redis.sentinelAuth.enabled -}}<%= File.read("/etc/gitlab/redis-sentinel/redis-sentinel-password").strip %>{{- end -}}
+{{- end -}}
+
+{{/*
 Build the structure describing sentinels
 */}}
+{{- define "gitlab.redis.sentinelsList" -}}
+{{- include "gitlab.redis.selectedMergedConfig" . -}}
+{{- if .redisMergedConfig.sentinels -}}
+{{- range $i, $entry := .redisMergedConfig.sentinels }}
+- host: {{ $entry.host }}
+  port: {{ default 26379 $entry.port }}
+{{- end }}
+{{- end -}}
+{{- end -}}
+
 {{- define "gitlab.redis.sentinels" -}}
 {{- include "gitlab.redis.selectedMergedConfig" . -}}
 {{- if .redisMergedConfig.sentinels -}}
 sentinels:
-{{- range $i, $entry := .redisMergedConfig.sentinels }}
-  - host: {{ $entry.host }}
-    port: {{ default 26379 $entry.port }}
+{{- include "gitlab.redis.sentinelsList" . | nindent 2 }}
 {{- end }}
-{{- end -}}
 {{- end -}}
 
 {{/*Set redisMergedConfig*/}}
@@ -93,10 +144,15 @@ sentinels:
 {{-   if not (kindIs "map" (get $.redisMergedConfig "password")) -}}
 {{-     $_ := set $.redisMergedConfig "password" $.Values.global.redis.auth -}}
 {{-   end -}}
+{{- $_ := set $.redisMergedConfig "database" (default 0 .Values.global.redis.database) -}}
 {{- range $key := keys $.Values.global.redis.auth -}}
 {{-   if not (hasKey $.redisMergedConfig.password $key) -}}
 {{-     $_ := set $.redisMergedConfig.password $key (index $.Values.global.redis.auth $key) -}}
 {{-   end -}}
+{{- end -}}
+{{/* Set redisMergedConfig.sentinelAuth. */}}
+{{- if not (kindIs "map" (get $.redisMergedConfig "sentinelAuth")) -}}
+{{-   $_ := set $.redisMergedConfig "sentinelAuth" $.Values.global.redis.sentinelAuth -}}
 {{- end -}}
 {{- end -}}
 
@@ -167,3 +223,13 @@ instances.
 {{- end }}
 {{- end -}}
 
+{{- define "gitlab.redisSentinel.secret" -}}
+{{- include "gitlab.redis.configMerge" . -}}
+{{- if .redisMergedConfig.sentinelAuth.enabled }}
+- secret:
+    name: {{ template "gitlab.redis.sentinelAuth.secret" . }}
+    items:
+      - key: {{ template "gitlab.redis.sentinelAuth.key" . }}
+        path: redis-sentinel/redis-sentinel-password
+{{- end }}
+{{- end -}}

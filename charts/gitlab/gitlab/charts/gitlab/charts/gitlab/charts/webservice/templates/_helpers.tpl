@@ -22,7 +22,8 @@ It expects a dictionary with two entries:
 {{- define "webservice.tlsSecret" -}}
 {{- $defaultName := (dict "secretName" "") -}}
 {{- if .root.Values.global.ingress.configureCertmanager -}}
-{{-   $_ := set $defaultName "secretName" (printf "%s-gitlab-tls" .root.Release.Name) -}}
+{{-   $postfix := .certmanagerPostfix | default "" }}
+{{-   $_ := set $defaultName "secretName" (printf "%s-gitlab-tls%s" .root.Release.Name $postfix) -}}
 {{- else -}}
 {{-   $_ := set $defaultName "secretName" (include "gitlab.wildcard-self-signed-cert-name" .root) -}}
 {{- end -}}
@@ -267,8 +268,13 @@ Return the workhorse redis configuration.
 {{- end }}
 {{- include "gitlab.redis.selectedMergedConfig" . -}}
 [redis]
+DB = {{ .redisMergedConfig.database }}
 {{- if not .redisMergedConfig.sentinels }}
-URL = "{{ template "gitlab.redis.scheme" $ }}://{{ template "gitlab.redis.host" $ }}:{{ template "gitlab.redis.port" $ }}"
+{{- $userinfo := "" }}
+{{- if .redisMergedConfig.user }}
+{{- $userinfo = printf "%s@" .redisMergedConfig.user }}
+{{- end }}
+URL = "{{ template "gitlab.redis.scheme" $ }}://{{ $userinfo }}{{ template "gitlab.redis.host" $ }}:{{ template "gitlab.redis.port" $ }}"
 {{- else }}
 SentinelMaster = "{{ template "gitlab.redis.host" $ }}"
 Sentinel = [ {{ template "gitlab.redis.workhorse.sentinel-list" $ }} ]
@@ -276,6 +282,9 @@ Sentinel = [ {{ template "gitlab.redis.workhorse.sentinel-list" $ }} ]
 {{- if .redisMergedConfig.password.enabled }}
 {{-   $passwordPath := printf "%s-password" (default "redis" .redisConfigName) }}
 Password = {% file.Read "/etc/gitlab/redis/{{ $passwordPath }}" | strings.TrimSpace | data.ToJSON %}
+{{- end }}
+{{- if .redisMergedConfig.sentinelAuth.enabled }}
+SentinelPassword = {% file.Read "/etc/gitlab/redis-sentinel/redis-sentinel-password" | strings.TrimSpace | data.ToJSON %}
 {{- end }}
 {{- $_ := set . "redisConfigName" "" }}
 {{- end -}}
@@ -292,6 +301,10 @@ Return the bash setup commands for redis secrets.
 {{-   $passwordPath := printf "%s-password" (default "redis" .redisConfigName) -}}
 mkdir -p /init-secrets-workhorse/redis
 cp -v -r -L /init-config/redis/{{ $passwordPath }} /init-secrets-workhorse/redis/
+{{- end -}}
+{{- if .redisMergedConfig.sentinelAuth.enabled }}
+mkdir -p /init-secrets-workhorse/redis-sentinel
+cp -v -r -L /init-config/redis-sentinel/redis-sentinel-password /init-secrets-workhorse/redis-sentinel/
 {{- end -}}
 {{- $_ := set . "redisConfigName" "" }}
 {{- end -}}

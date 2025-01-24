@@ -155,5 +155,13 @@ data:
 
     # Specifies amount of time athat the server will disconnect after if the user has not successfully logged in
     LoginGraceTime {{ .Values.config.loginGraceTime }}
+
+    # Includes
+    Include /etc/ssh/sshd_config.d/*.conf
+
+    {{- with .Values.opensshd }}
+    {{ .supplemental_config | nindent 4 }}
+    {{- end }}
+
 # Leave this here - This line denotes end of block to the parser.
 {{- end }}

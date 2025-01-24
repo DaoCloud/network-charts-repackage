@@ -36,17 +36,3 @@ When type-specific object storage is enabled the `connection` property can not b
 {{-   end -}}
 {{- end -}}
 {{/* END gitlab.checkConfig.objectStorage.typeSpecificConfig */}}
-
-{{- define "gitlab.checkConfig.objectStorage.ciSecureFiles" -}}
-{{-   if and (not $.Values.global.minio.enabled) ($.Values.global.appConfig.ciSecureFiles.enabled)  -}}
-{{-     $objectProps := index $.Values.global.appConfig "ciSecureFiles" -}}
-{{-     if or (empty (index $objectProps "connection")) (empty (index $objectProps "bucket")) -}}
-ciSecureFiles:
-  A valid object storage configuration must be set for ciSecureFiles, the
-  `bucket` and `connection` properties can not be empty.
-  Consolidated object storage configurations is not supported at this time
-  for ciSecureFiles.
-{{-     end -}}
-{{-   end -}}
-{{- end -}}
-{{/* END gitlab.checkConfig.objectStorage.ciSecureFiles */}}

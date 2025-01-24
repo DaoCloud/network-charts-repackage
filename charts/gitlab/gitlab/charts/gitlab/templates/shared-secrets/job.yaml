@@ -32,9 +32,7 @@ spec:
       {{- if or $.Values.global.priorityClassName $sharedSecretValues.priorityClassName }}
       priorityClassName: {{ default $.Values.global.priorityClassName $sharedSecretValues.priorityClassName }}
       {{- end }}
-      securityContext:
-        runAsUser: {{ $sharedSecretValues.securityContext.runAsUser }}
-        fsGroup: {{ $sharedSecretValues.securityContext.fsGroup }}
+      {{- include "gitlab.podSecurityContext" $sharedSecretValues.securityContext | nindent 6 }}
       {{- if or $sharedSecretValues.serviceAccount.enabled .Values.global.serviceAccount.enabled }}
       serviceAccountName: {{ template "shared-secrets.serviceAccountName" . }}
       {{- end }}
@@ -45,6 +43,10 @@ spec:
           image: {{ .Values.kubectl.image.registry }}/{{ .Values.kubectl.image.repository }}:{{ .Values.kubectl.image.tag }}
           {{- include "gitlab.image.pullPolicy" $imageCfg | indent 10 }}
           command: ['/bin/bash', '/scripts/generate-secrets']
+          {{- if $sharedSecretValues.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $sharedSecretValues.containerSecurityContext | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: scripts
               mountPath: /scripts
