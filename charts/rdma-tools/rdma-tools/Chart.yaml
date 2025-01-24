@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 0.1.0
+appVersion: 12.5.2
 description: rdma test
 home: https://spidernet-io.github.io/charts
 keywords:
@@ -10,8 +10,8 @@ name: rdma-tools
 sources:
   - https://spidernet-io.github.io/charts
 type: application
-version: 0.1.0
+version: 12.5.2
 dependencies:
   - name: rdma-tools
-    version: "0.1.0"
+    version: "12.5.2"
     repository: "https://spidernet-io.github.io/charts"

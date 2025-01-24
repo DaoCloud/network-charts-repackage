@@ -3,7 +3,10 @@ name: rdma-test
 image:
   registry: ghcr.io
   repository: spidernet-io/rdma-tools
-  tag: "12.5.1-2c4f5689f61cb66418a333bd1cf5a147ca6eeaa6"
+  tag: "12.5.1-2fb059063ddc5a9e530f413f60f6c4bc41709649"
+  #registry: ghcr.io
+  #repository: coreweave/nccl-tests
+  #tag: "12.4.1-cudnn-devel-ubuntu22.04-nccl2.21.5-1-85f9143"
 
   pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -17,22 +20,25 @@ nodeSelector:
 affinity: {}
 
 resources:
-  #limits:
-  #  spidernet.io/gpu1sriov: 1
   requests:
     cpu: 200m
     memory: 150Mi
 
-extraAnnotations:
+extraAnnotations: {}
   #v1.multus-cni.io/default-network: spiderpool/calico
   #k8s.v1.cni.cncf.io/networks: |-
   #   [{"name":"gpu1-sriov","namespace":"spiderpool"},
   #    {"name":"gpu2-sriov","namespace":"spiderpool"},
   #    {"name":"gpu8-sriov","namespace":"spiderpool"}]
 
-securityContext:
+securityContext: {}
+  #privileged: true
   #capabilities:
   #  add: [ "IPC_LOCK" ]
+
+command: []
+  #- "/usr/bin/sleep"
+  #- "infinity"
 
 extraEnv: []
 
@@ -43,3 +49,6 @@ extraVolumes: []
 extraVolumeMounts: []
 # - name: test-val
 #   mountPath: /tmp
+
+service:
+  type: ClusterIP

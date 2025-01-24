@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://spidernet-io.github.io/charts
 export REPO_NAME=spiderchart
 export CHART_NAME=rdma-tools
-export VERSION=0.1.0
+export VERSION=12.5.2
 
 # pr, issue, none
 export UPGRADE_METHOD=pr

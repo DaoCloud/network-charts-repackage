@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+      protocol: TCP

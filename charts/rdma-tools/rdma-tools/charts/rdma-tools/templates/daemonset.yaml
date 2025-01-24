@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name:  {{ .Values.name | trunc 63 | trimSuffix "-" }}
+  name:  {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+    app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
 spec:
   selector:
     matchLabels:
-      app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+      app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
   updateStrategy:
     type: OnDelete
   template:
     metadata:
       labels:
-        app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+        app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
       {{- if .Values.extraAnnotations }}
       annotations:
         {{- include "tplvalues.render" ( dict "value" .Values.extraAnnotations "context" $ ) | nindent 8 }}
@@ -33,6 +33,7 @@ spec:
       hostNetwork: false
       dnsPolicy: ClusterFirst
       {{- end }}
+      serviceAccountName: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
       restartPolicy: Always
       {{- with .Values.tolerations }}
       tolerations:
@@ -44,12 +45,26 @@ spec:
       {{- end }}
       {{- if .Values.affinity }}
       affinity:
-      {{- include "tplvalues.render" (dict "value" .Values.affinity "context" $) | nindent 6 }}
+        {{- include "tplvalues.render" (dict "value" .Values.affinity "context" $) | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Values.name | trunc 63 | trimSuffix "-" }}
           image: {{ include "project.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.command }}
+          command:
+          {{- with .Values.command }}
+          {{- toYaml . | nindent 10  }}
+          {{- end }}
+          {{- end }}
+          readinessProbe:
+            exec:
+              command:
+                [sh, -c, 'ls /tmp/ready']
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
           {{- with .Values.resources }}
           resources:
           {{- toYaml . | trim | nindent 12 }}
@@ -57,7 +72,7 @@ spec:
           {{- if .Values.securityContext }}
           securityContext:
           {{- with .Values.securityContext }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- end }}
           env:
@@ -73,6 +88,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: ENV_SERVICE_NAME
+              value: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
             - name: ENV_POD_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -80,15 +97,16 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- if .Values.extraVolumes }}
           volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
             {{- if .Values.extraVolumes }}
-            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 12 }}
+            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumes "context" $ ) | nindent 12 }}
             {{- end }}
-          {{- end }}
-      {{- if .Values.extraVolumes }}
       volumes:
+        - emptyDir:
+            medium: Memory
+          name: dshm
       {{- if .Values.extraVolumeMounts }}
       {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 6 }}
-      {{- end }}
       {{- end }}
