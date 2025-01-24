@@ -52,6 +52,9 @@
   - [MinIO(S3) 存储](#minios3-存储)
     - [使用内置 Minio 存储](#使用内置-minio-存储)
     - [使用外部 S3 存储](#使用外部-s3-存储)
+- [服务监控](#服务监控)
+  - [安装 Prometheus Operator](#安装-prometheus-operator)
+  - [配置项](#配置项)
 - [其他](#其他)
   - [Daocloud DCE 菜单配置](#daocloud-dce-菜单配置)
 
@@ -67,6 +70,21 @@ helm repo add monkeys https://inf-monkeys.github.io/helm-charts
 # 安装核心服务
 helm install monkeys monkeys/core -n monkeys --create-namespace
 ```
+
+<details>
+<summary><kbd>开发模式</kbd></summary>
+
+Helm Chart 的开发者可以使用下面的命令在本地进行安装：
+
+```sh
+cd charts/core
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add elastic https://helm.elastic.co
+helm dependency build
+helm install monkeys . --values ./values.yaml -n monkeys --create-namespace
+```
+
+</details>
 
 ### 检查运行状态
 
@@ -85,7 +103,7 @@ kubectl get svc -n monkeys
 kubectl get pods -n monkeys
 
 # Port Forward monkey-proxy-xxxx-xxxx Pod, in this example use local machine's 8080 port.
-kubectl port-forward --address 0.0.0.0 monkey--core-proxy-xxxx-xxxx 8080:80 -n monkeys
+kubectl port-forward --address 0.0.0.0 monkeys-core-proxy-xxxx-xxxx 8080:80 -n monkeys
 
 # Try
 curl http://localhost:8080
@@ -133,7 +151,7 @@ helm uninstall monkeys -n monkeys
 | `images.web.pullPolicy`        | 镜像拉取策略                                                                  | `IfNotPresent`             |
 | `images.web.pullSecrets`       | 镜像拉取密钥                                                                  | `""`                       |
 | `images.conductor.registry`    | 镜像 Registry                                                                 | `docker.io`                |
-| `images.conductor.repository`  | 流程编排引擎 [conductor](https://github.com/inf-monkeys/conductor) 的镜像地址 | `infmonkeys/conductor`     |
+| `images.conductor.repository`  | 流程编排引擎 [conductor](https://github.com/inf-monkeys/conductor) 的镜像地址 | `infmonkeys/conductor-oss` |
 | `images.conductor.tag`         | 版本号                                                                        | `latest`                   |
 | `images.conductor.pullPolicy`  | 镜像拉取策略                                                                  | `IfNotPresent`             |
 | `images.conductor.pullSecrets` | 镜像拉取密钥                                                                  | `""`                       |
@@ -258,20 +276,20 @@ service:
 
 你可以按照下面的配置添加任意符合 OpenAI 标准的大语言模型：
 
-| 参数                      | 描述                                                                                                                                                                                                                                                    | 默认值  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `model`                   | model name，如 `gpt-3.5-turbo`                                                                                                                                                                                                                          |         |
-| `baseURL`                 | 访问地址，如 `https://api.openai.com/v1`                                                                                                                                                                                                                |         |
-| `apiKey`                  | APIKey，如果没有可不填。                                                                                                                                                                                                                                |         |
-| `type`                    | 此模型的类型，可选值为 `chat_completions` 和 `completions`，分别表示是一个对话模型还是文本补全模型。不填则表示两种方式都支持。                                                                                                                          | `""`    |
-| `autoMergeSystemMessages` | 是否自动合并多条 System Messages，通过 VLLM 部署的模型，不能连续传多条为同一个 `role` 的 `message`，如果有多条 System Message（通过知识库自动设置、大语言模型节点手动设置预制 Prompt、API 调用或第三方工具手动传入 `system` message），需要合并为一条。 | `false` |
-| `defaultParams`           | 默认请求参数，比如一些模型如 `Qwen/Qwen-7B-Chat-Int4`，需要设置 top 参数。                                                                                                                                                                              |         |
+| 参数                           | 描述                                                                                                                                                                                                                                     | 默认值  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `model`                        | model name，如 `gpt-3.5-turbo`                                                                                                                                                                                                           |         |
+| `baseURL`                      | 访问地址，如 `https://api.openai.com/v1`                                                                                                                                                                                                 |         |
+| `apiKey`                       | APIKey，如果没有可不填。                                                                                                                                                                                                                 |         |
+| `type`                         | 此模型的类型，可选值为 `chat_completions` 和 `completions`，分别表示是一个对话模型还是文本补全模型。不填则表示两种方式都支持。                                                                                                           | `""`    |
+| `autoMergeConsecutiveMessages` | 是否自动合并连续的同一个 role 的 messages，通过 VLLM 部署的模型，不能连续传多条为同一个 `role` 的 `message`，如果有多条连续相同 role 的 Message，需要自动合并为一条。如果设置为 `true`，将自动合并为一条 message，使用 `\n\n` 进行分隔。 | `false` |
+| `defaultParams`                | 默认请求参数，比如一些模型如 `Qwen/Qwen-7B-Chat-Int4`，需要设置 top 参数。                                                                                                                                                               |         |
 
 
 以下是一个示例：
 
 ```yaml
-models:
+llmModels:
   - model: gpt-3.5-turbo
     baseURL: https://api.openai.com/v1
     apiKey: xxxxxxxxxxxxxx
@@ -285,7 +303,7 @@ models:
   - model: Qwen/Qwen-7B-Chat-Int4
     baseURL: http://127.0.0.1:8000/v1
     apiKey: token-abc123
-    autoMergeSystemMessages: true
+    autoMergeConsecutiveMessages: true
     defaultParams:
       stop:
         - <|im_start|>
@@ -566,30 +584,86 @@ sentinels:
 
 #### 使用外部 S3 存储
 
-| 参数                         | 描述                                                                                                | 默认值  |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- | ------- |
-| `externalS3.enabled`         | 使用使用外部的满足你 S3 协议的对象存储，如 Minio、AWS S3 等。                                       | `false` |
-| `externalS3.isPrivate`       | 是否为私有仓库                                                                                      | `false` |
-| `externalS3.forcePathStyle`  | 是否使用 path-style endpoint, 当你使用 minio 时，一般都需要设置为 `true`                            | `false` |
-| `externalS3.endpoint`        | 访问地址                                                                                            | `""`    |
-| `externalS3.accessKeyId`     | AccessKeyID                                                                                         | `""`    |
-| `externalS3.secretAccessKey` | Secret Access Key                                                                                   | `""`    |
-| `externalS3.region`          | 区域                                                                                                | `""`    |
-| `externalS3.bucket`          | Bucket 名称，请使用公开的 bucket，以便前端能够访问到。                                              | `""`    |
-| `externalS3.publicAccessUrl` | 请填写外部（浏览器）可访问的地址，一般为 Bucket 配置的 CDN 地址，如 `https://static.infmonkeys.com` | `31900` |
+| 参数                         | 描述                                                                                                                                                                                                                                                                                                                                                                              | 默认值  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `externalS3.enabled`         | 使用使用外部的满足你 S3 协议的对象存储，如 Minio、AWS S3 等。                                                                                                                                                                                                                                                                                                                     | `false` |
+| `externalS3.proxy`           | 是否使用 Server 作为中转代理进行上传。在某些情况下，你的 S3 服务（比如 MinIO）无法对外直接访问，这个时候你可以设置为 `true`，通过 `server` 服务进行中转代理。                                                                                                                                                                                                                     | `true`  |
+| `externalS3.isPrivate`       | 是否为私有仓库                                                                                                                                                                                                                                                                                                                                                                    | `false` |
+| `externalS3.forcePathStyle`  | 是否使用 path-style endpoint, 当你使用 minio 时，一般都需要设置为 `true`                                                                                                                                                                                                                                                                                                          | `false` |
+| `externalS3.accessKeyId`     | AccessKeyID                                                                                                                                                                                                                                                                                                                                                                       | `""`    |
+| `externalS3.secretAccessKey` | Secret Access Key                                                                                                                                                                                                                                                                                                                                                                 | `""`    |
+| `externalS3.region`          | 区域                                                                                                                                                                                                                                                                                                                                                                              | `""`    |
+| `externalS3.bucket`          | Bucket 名称，请使用公开的 bucket，以便前端能够访问到。                                                                                                                                                                                                                                                                                                                            | `""`    |
+| `externalS3.endpoint`        | S3 服务的 endpoint 地址。如果 `proxy` 为 `true`，则会在 `server` 服务内访问 s3，填此 s3 的内网地址；如果 `proxy` 为 `false`，将会从浏览器访问此地址，此地址必须对外网能够访问。示例：如果你使用的 `minio`，则需要填写的是 `minio` 的 `api` 端口，而非 `console` 端口；如果你使用的是云厂商提供的 s3 服务，填写对应的 `endpoint` 地址，如 `https://tos-s3-cn-beijing.volces.com`。 | `""`    |
+| `externalS3.publicAccessUrl` | 注意：`publicAccessUrl` 和 `endpoint` 为两个不同的地址，此地址会作为上传得到的 URL 的前缀，必须对浏览器可访问，否则浏览器将无法正常显示上传的文件。如果你使用的是如 `aws`, `阿里云`, `火山云` 等云厂商提供的 s3 服务，并且给 bucket 配置了 CDN 加速地址，可以将此地址配置为 CDN 的地址，如 `https://static.infmonkeys.com`                                                        | `""`    |
+
+## 服务监控
+
+Monkeys 服务暴露的 Prometheus 详细指标以及配置过程请见 [https://inf-monkeys.github.io/docs/zh-cn/cluster/monitoring/prometheus-grafana/](https://inf-monkeys.github.io/docs/zh-cn/cluster/monitoring/prometheus-grafana/)。
+
+### 安装 Prometheus Operator
+
+如果你还没有安装 Prometheus Operator，可以通过下面的命令安装，这里设置的 namespace 为 `monitoring`:
+
+```sh
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+kubectl create namespace monitoring
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring
+```
+
+检查安装状态:
+
+```sh
+kubectl get all -n monitoring
+```
+
+### 配置项
+
+| 参数              | 描述                   | 默认值 |
+| ----------------- | ---------------------- | ------ |
+| `serviceMonitors` | 开启的 servicemonitors | `[]]`  |
+
+由于不确定部署的环境是否安装了 Prometheus Operator，所以 `serviceMonitors` 默认为空数组。在你安装了 Prometheus Operator 之后，可以修改 `serviceMonitors` 配置如下：
+
+- `namespace`: 修改为你的 Prometheus Operator 所在的 namespace。
+
+```yaml
+serviceMonitors:
+  - name: monkeys-core-server
+    namespace: monitoring
+    selector:
+      matchLabels:
+        monkeys/app: server
+    endpoints:
+      - port: http-server
+        interval: 5s
+        path: /metrics
+  - name: monkeys-core-conductor
+    namespace: monitoring
+    selector:
+      matchLabels:
+        monkeys/app: conductor
+    endpoints:
+      - port: http-conductor
+        interval: 1s
+        path: /actuator/prometheus
+```
+
+如果你在**当前 namespace** 下部署了 vllm 服务，可以类似添加新的 `serviceMonitor`，但是 Monkeys 的 helm charts 默认不提供。
 
 ## 其他
 
 ### Daocloud DCE 菜单配置
 
-| 参数                                   | 描述                                                    | 默认值                                                    |
-| -------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
-| `GProductNavigator.enabled`            | 是否启用 Daocloud DCE 菜单                              | `false`                                                   |
-| `GProductNavigator.spec.name`          | 显示名称                                                | `流程编排`                                                |
+| 参数                                   | 描述                                                    | 默认值                                           |
+| -------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ |
+| `GProductNavigator.enabled`            | 是否启用 Daocloud DCE 菜单                              | `false`                                          |
+| `GProductNavigator.spec.name`          | 显示名称                                                | `流程编排`                                       |
 | `GProductNavigator.spec.iconUrl`       | Logo                                                    | `https://static.infmonkeys.com/favicon-gray.svg` |
-| `GProductNavigator.spec.localizedName` | 多语言名称配置                                          | `""`                                                      |
-| `GProductNavigator.spec.url`           | 点击菜单之后的跳转地址，请修改为 Monkeys 的方访问地址。 | `"https://ai.daocloud.cn/login"`                          |
-| `GProductNavigator.spec.category`      | 类型                                                    | `modelapplication`                                        |
-| `GProductNavigator.spec.visible`       | 是否显示。                                              | `true`                                                    |
-| `GProductNavigator.spec.order`         | 排序，数字越大，越靠上。                                | `0`                                                       |
-| `GProductNavigator.spec.gproduct`      | gproduct 名称.                                          | `monkeys`                                                 |
+| `GProductNavigator.spec.localizedName` | 多语言名称配置                                          | `""`                                             |
+| `GProductNavigator.spec.url`           | 点击菜单之后的跳转地址，请修改为 Monkeys 的方访问地址。 | `"https://ai.daocloud.cn/login"`                 |
+| `GProductNavigator.spec.category`      | 类型                                                    | `modelapplication`                               |
+| `GProductNavigator.spec.visible`       | 是否显示。                                              | `true`                                           |
+| `GProductNavigator.spec.order`         | 排序，数字越大，越靠上。                                | `0`                                              |
+| `GProductNavigator.spec.gproduct`      | gproduct 名称.                                          | `monkeys`                                        |

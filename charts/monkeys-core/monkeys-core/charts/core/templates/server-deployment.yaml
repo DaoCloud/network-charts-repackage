@@ -5,6 +5,7 @@ metadata:
 {{ include "monkeys.ud.annotations" . | indent 4 }}
     descriptions: server
   labels:
+    monkeys/app: server
 {{- include "monkeys.labels" . | nindent 4 }}
     component: server
 {{ include "monkeys.ud.labels" . | indent 4 }}
@@ -18,6 +19,9 @@ spec:
   template:
     metadata:
       annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
 {{ include "monkeys.ud.annotations" . | indent 8 }}
       labels:
 {{- include "monkeys.selectorLabels" . | nindent 8 }}

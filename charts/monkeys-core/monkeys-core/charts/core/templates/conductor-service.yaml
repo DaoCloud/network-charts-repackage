@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: {{ template "monkeys.conductor.fullname" . }}
   labels:
+    monkeys/app: conductor
 {{ include "monkeys.labels" . | indent 4 }}
 {{- if .Values.conductor.service.labels }}
 {{ toYaml .Values.conductor.service.labels | indent 4 }}
@@ -22,6 +23,10 @@ spec:
       port: {{ .Values.conductor.service.port }}
       protocol: TCP
       targetPort: http-conductor
+    - name: http-ui
+      port: 5000
+      protocol: TCP
+      targetPort: http-ui
   selector:
 {{ include "monkeys.selectorLabels" . | indent 4 }}
     component: "conductor"

@@ -6,7 +6,7 @@ metadata:
   name: conductor-config
 apiVersion: v1
 data:
-  config-local.properties: |
+  config.properties: |
     conductor.grpc-server.enabled=false
 
     # Database persistence model.
@@ -60,3 +60,7 @@ data:
     conductor.app.maxWorkflowVariablesPayloadSizeThreshold=100MB
     conductor.app.workflowOffsetTimeout=10m
     conductor.app.asyncUpdateShortRunningWorkflowDuration=10m
+
+    # Prometheus metrics
+    conductor.metrics-prometheus.enabled=true
+    management.endpoints.web.exposure.include=health,info,prometheus
