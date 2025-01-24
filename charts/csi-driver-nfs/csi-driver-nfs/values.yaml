@@ -5,27 +5,31 @@ csi-driver-nfs:
     baseRepo: k8s.m.daocloud.io
     nfs:
       repository: sig-storage/nfsplugin
-      tag: v4.9.0
+      tag: v4.10.0
       pullPolicy: IfNotPresent
     csiProvisioner:
       repository: sig-storage/csi-provisioner
-      tag: v5.0.2
+      tag: v5.2.0
+      pullPolicy: IfNotPresent
+    csiResizer:
+      repository: sig-storage/csi-resizer
+      tag: v1.13.1
       pullPolicy: IfNotPresent
     csiSnapshotter:
       repository: sig-storage/csi-snapshotter
-      tag: v8.0.1
+      tag: v8.2.0
       pullPolicy: IfNotPresent
     livenessProbe:
       repository: sig-storage/livenessprobe
-      tag: v2.13.1
+      tag: v2.15.0
       pullPolicy: IfNotPresent
     nodeDriverRegistrar:
       repository: sig-storage/csi-node-driver-registrar
-      tag: v2.11.1
+      tag: v2.13.0
       pullPolicy: IfNotPresent
     externalSnapshotter:
       repository: sig-storage/snapshot-controller
-      tag: v8.0.1
+      tag: v8.2.0
       pullPolicy: IfNotPresent
   serviceAccount:
     create: true # When true, service accounts will be created for you. Set to false if you want to use your own.
@@ -48,6 +52,8 @@ csi-driver-nfs:
     strategyType: Recreate
     runOnMaster: false
     runOnControlPlane: false
+    enableSnapshotter: true
+    useTarCommandInSnapshot: false
     livenessProbe:
       healthPort: 29652
     logLevel: 5
@@ -67,8 +73,17 @@ csi-driver-nfs:
       - key: "node-role.kubernetes.io/control-plane"
         operator: "Exists"
         effect: "NoSchedule"
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoSchedule"
     resources:
       csiProvisioner:
+        limits:
+          memory: 400Mi
+        requests:
+          cpu: 10m
+          memory: 20Mi
+      csiResizer:
         limits:
           memory: 400Mi
         requests:
@@ -127,6 +142,7 @@ csi-driver-nfs:
     enabled: false
     name: snapshot-controller
     priorityClassName: system-cluster-critical
+    deletionPolicy: Delete
     controller:
       replicas: 1
     resources:
@@ -138,6 +154,11 @@ csi-driver-nfs:
     # Create volume snapshot CRDs.
     customResourceDefinitions:
       enabled: true #if set true, VolumeSnapshot, VolumeSnapshotContent and VolumeSnapshotClass CRDs will be created. Set it false, If they already exist in cluster.
+  ## volumeSnapshotClass resource example:
+  volumeSnapshotClass:
+    create: false
+    name: csi-nfs-snapclass
+    deletionPolicy: Delete
   ## Reference to one or more secrets to be used when pulling images
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   ##
