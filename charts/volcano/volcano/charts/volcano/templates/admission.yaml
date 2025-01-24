@@ -3,24 +3,42 @@
 {{ $admission_tolerations := or .Values.custom.admission_tolerations .Values.custom.default_tolerations }}
 {{ $admission_sc := or .Values.custom.admission_sc .Values.custom.default_sc }}
 {{ $admission_ns := or .Values.custom.admission_ns .Values.custom.default_ns }}
+{{ $scheduler_name := .Values.custom.scheduler_name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-admission-configmap
   namespace: {{ .Release.Namespace }}
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 data:
+  {{- if .Values.custom.admission_config_override }}
+  volcano-admission.conf: |
+    {{- .Values.custom.admission_config_override | nindent 4 }}
+  {{- else }}
   {{- (.Files.Glob .Values.basic.admission_config_file).AsConfig | nindent 2}}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Release.Name }}-admission
   namespace: {{ .Release.Namespace }}
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ .Release.Name }}-admission
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -35,12 +53,9 @@ rules:
   - apiGroups: ["certificates.k8s.io"]
     resources: ["certificatesigningrequests/approval"]
     verbs: ["create", "update"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["create", "get", "patch"]
   - apiGroups: ["scheduling.incubator.k8s.io", "scheduling.volcano.sh"]
     resources: ["queues"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get"]
@@ -53,6 +68,10 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ .Release.Name }}-admission-role
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-admission
@@ -68,8 +87,8 @@ kind: Deployment
 metadata:
   labels:
     app: volcano-admission
-    {{- if .Values.custom.admission_labels }}
-    {{- toYaml .Values.custom.admission_labels | nindent 4 }}
+    {{- if or (.Values.custom.admission_labels) (.Values.custom.common_labels) }}
+    {{- mustMerge (.Values.custom.admission_labels | default (dict)) (.Values.custom.common_labels | default (dict)) | toYaml | nindent 4 }}
     {{- end }}
   name: {{ .Release.Name }}-admission
   namespace: {{ .Release.Namespace }}
@@ -82,8 +101,8 @@ spec:
     metadata:
       labels:
         app: volcano-admission
-        {{- if .Values.custom.admission_podLabels }}
-        {{- toYaml .Values.custom.admission_podLabels | nindent 8 }}
+        {{- if or (.Values.custom.admission_podLabels) (.Values.custom.common_labels) }}
+        {{- mustMerge (.Values.custom.admission_podLabels | default (dict)) (.Values.custom.common_labels | default (dict)) | toYaml | nindent 8 }}
         {{- end }}
     spec:
       {{- if $admission_tolerations }}
@@ -115,12 +134,15 @@ spec:
             - --admission-conf=/admission.local.config/configmap/{{base .Values.basic.admission_config_file}}
             - --webhook-namespace={{ .Release.Namespace }}
             - --webhook-service-name={{ .Release.Name }}-admission-service
+            {{- if $scheduler_name }}
+            - --scheduler-name={{- $scheduler_name }}
+            {{- end }}
             - --enable-healthz=true
             - --logtostderr
             - --port={{.Values.basic.admission_port}}
-            - -v=4
+            - -v={{.Values.custom.admission_log_level}}
             - 2>&1
-          image: {{ .Values.admission.image.registry }}/{{ .Values.admission.image.repository }}:{{.Values.admission.image.tag }}
+          image: {{ .Values.basic.image_registry }}/{{ .Values.admission.image.registry }}/{{ .Values.admission.image.repository }}:{{.Values.admission.image.tag }}
           imagePullPolicy: {{ .Values.admission.image.pullPolicy }}
           name: admission
           {{- if .Values.custom.admission_resources }}
@@ -133,6 +155,10 @@ spec:
               readOnly: true
             - mountPath: /admission.local.config/configmap
               name: admission-config
+          {{- if .Values.custom.admission_default_csc }}
+          securityContext:
+            {{- toYaml .Values.custom.admission_default_csc | nindent 12 }}
+          {{- end }}
       volumes:
         - name: admission-certs
           secret:
@@ -148,9 +174,18 @@ kind: Service
 metadata:
   labels:
     app: volcano-admission
+    {{- if .Values.custom.common_labels }}
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+    {{- end }}
   name: {{ .Release.Name }}-admission-service
   namespace: {{ .Release.Namespace }}
 spec:
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ toYaml .Values.service.ipFamilies | nindent 4 }}
+  {{- end }}
   ports:
     - port: 443
       protocol: TCP
@@ -158,51 +193,4 @@ spec:
   selector:
     app: volcano-admission
   sessionAffinity: None
-
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ .Release.Name }}-admission-init
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: volcano-admission-init
-    {{- if .Values.custom.admission_labels }}
-    {{- toYaml .Values.custom.admission_labels | nindent 4 }}
-    {{- end }}
-spec:
-  backoffLimit: 3
-  template:
-    spec:
-      {{- if $admission_tolerations }}
-      tolerations: {{- toYaml $admission_tolerations | nindent 8 }}
-      {{- end }}
-      {{- if $admission_ns }}
-      nodeSelector: {{- toYaml $admission_ns | nindent 8 }}
-      {{- end }}
-      {{- if $admission_affinity }}
-      affinity:
-        {{- toYaml $admission_affinity | nindent 8 }}
-      {{- end }}
-      {{- if $admission_sc }}
-      securityContext:
-        {{- toYaml $admission_sc | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ .Release.Name }}-admission
-      priorityClassName: system-cluster-critical
-      {{- if .Values.basic.image_pull_secret }}
-      imagePullSecrets:
-        - name: {{ .Values.basic.image_pull_secret }}
-      {{- end }}
-      restartPolicy: Never
-      containers:
-        - name: main
-          {{- if .Values.custom.admission_resources }}
-          resources:
-          {{- toYaml .Values.custom.admission_resources | nindent 12 }}
-          {{- end }}
-          image: {{ .Values.admission.image.registry }}/{{ .Values.admission.image.repository }}:{{.Values.admission.image.tag }}
-          imagePullPolicy: {{ .Values.admission.image.pullPolicy }}
-          command: ["./gen-admission-secret.sh", "--service", "{{ .Release.Name }}-admission-service", "--namespace",
-                    "{{ .Release.Namespace }}", "--secret", "{{.Values.basic.admission_secret_name}}"]
 {{- end }}

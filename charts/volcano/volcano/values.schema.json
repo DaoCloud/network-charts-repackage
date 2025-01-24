@@ -20,6 +20,9 @@
                         "admission_secret_name": {
                             "type": "string"
                         },
+                        "agent_image_name": {
+                            "type": "string"
+                        },
                         "controller_image_name": {
                             "type": "string"
                         },
@@ -27,6 +30,9 @@
                             "type": "string"
                         },
                         "image_pull_secret": {
+                            "type": "string"
+                        },
+                        "image_registry": {
                             "type": "string"
                         },
                         "image_tag_version": {
@@ -46,11 +52,20 @@
                         "admission_affinity": {
                             "type": "null"
                         },
+                        "admission_config_override": {
+                            "type": "null"
+                        },
+                        "admission_default_csc": {
+                            "type": "null"
+                        },
                         "admission_enable": {
                             "type": "boolean"
                         },
                         "admission_labels": {
                             "type": "null"
+                        },
+                        "admission_log_level": {
+                            "type": "integer"
                         },
                         "admission_ns": {
                             "type": "null"
@@ -70,14 +85,67 @@
                         "admission_tolerations": {
                             "type": "null"
                         },
+                        "agent_affinity": {
+                            "type": "null"
+                        },
+                        "agent_cni_config_path": {
+                            "type": "string"
+                        },
+                        "agent_ns": {
+                            "type": "null"
+                        },
+                        "agent_resources": {
+                            "type": "null"
+                        },
+                        "agent_sc": {
+                            "type": "null"
+                        },
+                        "agent_tolerations": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "effect": {
+                                        "type": "string"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "operator": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "colocation_enable": {
+                            "type": "boolean"
+                        },
+                        "common_labels": {
+                            "type": "null"
+                        },
                         "controller_affinity": {
+                            "type": "null"
+                        },
+                        "controller_default_csc": {
                             "type": "null"
                         },
                         "controller_enable": {
                             "type": "boolean"
                         },
+                        "controller_kube_api_burst": {
+                            "type": "integer"
+                        },
+                        "controller_kube_api_qps": {
+                            "type": "integer"
+                        },
                         "controller_labels": {
                             "type": "null"
+                        },
+                        "controller_log_level": {
+                            "type": "integer"
+                        },
+                        "controller_metrics_enable": {
+                            "type": "boolean"
                         },
                         "controller_ns": {
                             "type": "null"
@@ -97,6 +165,15 @@
                         "controller_tolerations": {
                             "type": "null"
                         },
+                        "controller_worker_threads": {
+                            "type": "integer"
+                        },
+                        "controller_worker_threads_for_gc": {
+                            "type": "integer"
+                        },
+                        "controller_worker_threads_for_podgroup": {
+                            "type": "integer"
+                        },
                         "default_affinity": {
                             "type": "null"
                         },
@@ -112,6 +189,9 @@
                         "enabled_admissions": {
                             "type": "string"
                         },
+                        "kube_state_metrics_ns": {
+                            "type": "null"
+                        },
                         "leader_elect_enable": {
                             "type": "boolean"
                         },
@@ -121,11 +201,35 @@
                         "scheduler_affinity": {
                             "type": "null"
                         },
+                        "scheduler_config_override": {
+                            "type": "null"
+                        },
+                        "scheduler_default_csc": {
+                            "type": "null"
+                        },
                         "scheduler_enable": {
                             "type": "boolean"
                         },
+                        "scheduler_kube_api_burst": {
+                            "type": "integer"
+                        },
+                        "scheduler_kube_api_qps": {
+                            "type": "integer"
+                        },
                         "scheduler_labels": {
                             "type": "null"
+                        },
+                        "scheduler_log_level": {
+                            "type": "integer"
+                        },
+                        "scheduler_metrics_enable": {
+                            "type": "boolean"
+                        },
+                        "scheduler_name": {
+                            "type": "null"
+                        },
+                        "scheduler_node_worker_threads": {
+                            "type": "integer"
                         },
                         "scheduler_ns": {
                             "type": "null"
@@ -142,11 +246,25 @@
                         "scheduler_sc": {
                             "type": "null"
                         },
+                        "scheduler_schedule_period": {
+                            "type": "string"
+                        },
                         "scheduler_tolerations": {
                             "type": "null"
                         },
                         "webhooks_namespace_selector_expressions": {
                             "type": "null"
+                        }
+                    }
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "ipFamilies": {
+                            "type": "array"
+                        },
+                        "ipFamilyPolicy": {
+                            "type": "string"
                         }
                     }
                 }
