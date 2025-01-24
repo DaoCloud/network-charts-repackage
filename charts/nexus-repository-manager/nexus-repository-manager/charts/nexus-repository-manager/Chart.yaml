@@ -1,6 +1,7 @@
 apiVersion: v2
-appVersion: 3.61.0
-description: Sonatype Nexus Repository Manager - Universal Binary repository
+appVersion: 3.64.0
+deprecated: true
+description: DEPRECATED Sonatype Nexus Repository Manager - Universal Binary repository
 home: https://www.sonatype.com/nexus-repository-oss
 icon: https://sonatype.github.io/helm3-charts/NexusRepo_Vertical.svg
 keywords:
@@ -14,11 +15,8 @@ keywords:
 - ci
 - repository-manager
 - nexus3
-maintainers:
-- email: support@sonatype.com
-  name: Sonatype
 name: nexus-repository-manager
 sources:
 - https://github.com/sonatype/nexus-public
 type: application
-version: 61.0.2
+version: 64.2.0

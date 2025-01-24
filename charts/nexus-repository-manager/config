@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://sonatype.github.io/helm3-charts/
 export REPO_NAME=sonatype
 export CHART_NAME=nexus-repository-manager
-export VERSION=61.0.2
+export VERSION=64.2.0
 # push to daocloud repo
 export DAOCLOUD_REPO_PROJECT=community
 export CUSTOM_SHELL=custom.sh
