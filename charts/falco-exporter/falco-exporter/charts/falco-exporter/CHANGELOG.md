@@ -3,6 +3,94 @@
 This file documents all notable changes to `falco-exporter` Helm Chart. The release
 numbering uses [semantic versioning](http://semver.org).
 
+## v0.12.1
+
+* fix bug in 'for' for falco exporter prometheus rules
+
+## v0.12.0
+
+* make 'for' configurable for falco exporter prometheus rules
+
+## v0.11.0
+
+* updated grafana dashboard
+
+## v0.10.1
+
+* Enhanced the service Monitor to support additional Properties.
+
+## v0.10.0
+
+* added ability to set the grafana folder annotation name
+
+## v0.9.11
+
+* fix dead links in README.md
+
+## v0.9.10
+
+* update configuration values in README.md
+* introduce helm docs for the chart
+
+## v0.9.9
+
+* update tolerations
+
+## v0.9.8
+
+* add annotation for set of folder's grafana-chart
+
+## v0.9.7
+
+* noop change just to test the ci
+
+## v0.9.6
+
+### Minor Changes
+
+* Bump falco-exporter to v0.8.3
+
+## v0.9.5
+
+### Minor Changes
+
+* Removed unnecessary capabilities from security context
+* Setted filesystem on read-only
+
+## v0.9.4
+
+### Minor Changes
+
+* Add options to configure readiness/liveness probe values
+
+## v0.9.3
+
+### Minor Changes
+
+* Bump falco-exporter to v0.8.2
+
+## v0.9.2
+
+### Minor Changes
+
+* Add option to place Grafana dashboard in a folder
+
+## v0.9.1
+
+### Minor Changes
+
+* Fix PSP allowed host path prefix to match grpc socket path change.
+
+## v0.8.3
+
+### Major Changes
+
+* Changing the grpc socket path from `unix:///var/run/falco/falco.soc` to `unix:///run/falco/falco.sock`.
+
+### Minor Changes
+
+* Bump falco-exporter to v0.8.0
+
 ## v0.8.2
 
 ### Minor Changes
