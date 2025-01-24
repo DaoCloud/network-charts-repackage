@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://submariner-io.github.io/submariner-charts/charts
 export REPO_NAME=submariner
 export CHART_NAME=submariner-k8s-broker
-export VERSION=0.16.2
+export VERSION=0.19.2
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
