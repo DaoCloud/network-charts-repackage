@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: v2.7.1
+appVersion: v2.8.0-rc3
 description: An operator for synthetic test and monitoring. Works great with Prometheus.
 home: https://kuberhealthy.github.io/kuberhealthy/
 icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/images/logo-square.png
@@ -20,9 +20,11 @@ maintainers:
   name: jonnydawg
 - email: joshulyne_park@comcast.com
   name: joshulyne
+- email: sheikhrachel97@gmail.com
+  name: sheikhrachel
 name: kuberhealthy
 sources:
 - https://github.com/kuberhealthy/kuberhealthy
 - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
 type: application
-version: "90"
+version: "105"

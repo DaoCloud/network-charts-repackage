@@ -2,12 +2,17 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# can be used to globally override the namespace where to deploy all components. By default .Release.namespace is used.
+#namespace: ""
+
 checkReaper:
   logLevel: error
   maxKHJobAge: 15m # Maximum age of the khjob resource before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
   maxCheckPodAge: 72h # Maximum age of khcheck/khjob pods before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
   maxCompletedPodCount: 4 # Maximum number of khcheck/khjob pods in Completed state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
   maxErrorPodCount: 4 # Maximum number of khcheck/khjob pods in Error state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
+
+stateMetadata: {}
 
 prometheus:
   enabled: false
@@ -17,6 +22,11 @@ prometheus:
     enabled: false
     label: grafana_dashboard
     labelValue: "1"
+    additionalLabels: {}
+      # env: "dev"
+      # mycustomlabel: "value"
+    annotations: {}
+      # k8s-sidecar-target-directory: "kuberhealthy"
     # namespace: "" # Alternative namespace to use for grafana dashboard.
 
   serviceMonitor:
@@ -28,7 +38,20 @@ prometheus:
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      # -- ServiceMonitor relabel configs to apply to samples before scraping
+      ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+      relabelings: []
+      # -- ServiceMonitor metric relabel configs to apply to samples before ingestion
+      ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#endpoint
+      metricRelabelings: []
+    # -- ServiceMonitor will add labels from the service to the Prometheus metric
+    ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitorspec
+    targetLabels: []
     namespace: kuberhealthy # prometheus operator must be allowed to scrape serviceMonitor metrics from kuberhealthy namespace or set to namespace of prometheus operator
+    rules: # applies to all PrometheusRule specs
+      additionalAnnotations: {}
+      additionalLabels:
+        severity: critical
 
   prometheusRule:
     enabled: false
@@ -88,6 +111,7 @@ deployment:
   #   effect: "NoSchedule"
   env:
     CHECK_REAPER_RUN_INTERVAL: "30s" # Interval for how often check pods should get reaped. Default is 30s
+    TARGET_NAMESPACE: "" # leave blank to target all namespaces, or supply a namespace to operate on only a single namespace
   command:
   - /app/kuberhealthy
   # args:
@@ -97,6 +121,20 @@ deployment:
   ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
   ## hard: specifies rules that must be met for a pod to be scheduled onto a node
   podAntiAffinity: "soft"
+  ## customLabels can be used to add custom labels to the deployment, such as datadog environment variables, ex:
+    # customLabels:
+    #   tags.datadoghq.com/env: "<ENV>"
+    #   tags.datadoghq.com/service: "<SERVICE>"
+    #   tags.datadoghq.com/version: "<VERSION>"
+  customLabels: {}
+
+pod:
+  ## customLabels can be used to add custom labels to the deployment, such as datadog environment variables, ex:
+  # customLabels:
+  #   tags.datadoghq.com/env: "<ENV>"
+  #   tags.datadoghq.com/service: "<SERVICE>"
+  #   tags.datadoghq.com/version: "<VERSION>"
+  customLabels: {}
 
 # When enabled equals to true, runAsUser and fsGroup will be
 # included to all khchecks as specified below.
@@ -107,6 +145,8 @@ securityContext:
   fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
+  #seccompProfile:
+  #  type: RuntimeDefault
 
 # When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
 # In case you use your own images for tests, you might need to add other PSPs as well on your own
