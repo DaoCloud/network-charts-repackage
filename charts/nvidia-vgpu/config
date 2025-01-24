@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://project-hami.github.io/HAMi/
 export REPO_NAME=hami
 export CHART_NAME=hami
-export VERSION=2.4.0
+export VERSION=2.5.0
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
