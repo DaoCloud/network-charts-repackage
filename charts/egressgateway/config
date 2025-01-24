@@ -3,7 +3,7 @@ export DAOCLOUD_REPO_PROJECT=addon
 export REPO_URL=https://spidernet-io.github.io/egressgateway
 export REPO_NAME=egressgateway
 export CHART_NAME=egressgateway
-export VERSION=0.6.0
+export VERSION=0.6.1
 
 export UPGRADE_METHOD=pr
 export UPGRADE_REVIWER=lou-lan
