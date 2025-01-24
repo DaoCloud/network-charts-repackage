@@ -3,7 +3,7 @@ export DAOCLOUD_REPO_PROJECT=addon
 export REPO_URL=https://charts.jetstack.io
 export REPO_NAME=cert-manager
 export CHART_NAME=cert-manager
-export VERSION=v1.16.1
+export VERSION=v1.16.3
 
 export UPGRADE_METHOD=pr
 export UPGRADE_REVIWER=lou-lan
