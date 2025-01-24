@@ -20,8 +20,8 @@ A network load-balancer implementation for Kubernetes using standard routing pro
 | instances.arp.interfaces | list | `[]` |  |
 | instances.arp.ipAddressPools | list | `["default-pool"]` | list of ip-address pools via arp advertisement |
 | instances.arp.name | string | `"default-l2advertisement"` | default arp advertisement name |
-| instances.arp.nodeSelectors.key | string | `"kubernetes.io/os"` |  |
-| instances.arp.nodeSelectors.value | string | `"linux"` |  |
+| instances.arp.nodeSelectors.key | string | `"node.spidernet.io/include-metallb-l2-loadbalancer"` |  |
+| instances.arp.nodeSelectors.value | string | `"true"` |  |
 | instances.enabled | bool | `false` | enable default ip-address pool |
 | instances.ipAddressPools.addresses | list | `[]` |  |
 | instances.ipAddressPools.autoAssign | bool | `true` |  |

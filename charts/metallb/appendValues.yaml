@@ -25,8 +25,8 @@ instances:
     - default-pool
     # ipAddressPoolSelectors: {}
     nodeSelectors:
-      key: "kubernetes.io/os"
-      value: "linux"
+      key: "node.spidernet.io/include-metallb-l2-loadbalancer"
+      value: "true"
     interfaces: []
 
 global:
