@@ -2,13 +2,13 @@ annotations:
   artifacthub.io/signKey: |
     fingerprint: 9E57D2479D48B84463EF491F66D280CE667AD6C8
     url: https://cowboysysop.github.io/charts/pgp-public-key-2022-02-19.asc
-  kubeVersion: '>=1.19'
+  kubeVersion: '>=1.24'
 apiVersion: v2
 appVersion: 0.1.31
 dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami/
-  version: 1.16.1
+  version: 2.9.0
 description: Kubernetes cluster visualiser and graphical explorer
 home: https://github.com/benc-uk/kubeview
 icon: https://raw.githubusercontent.com/benc-uk/kubeview/master/web/client/public/favicon.png
@@ -19,4 +19,4 @@ name: kubeview
 sources:
 - https://github.com/benc-uk/kubeview
 - https://github.com/cowboysysop/charts/tree/master/charts/kubeview
-version: 2.7.1
+version: 5.1.0
