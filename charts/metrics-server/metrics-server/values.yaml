@@ -6,7 +6,7 @@ metrics-server:
   image:
     repository: metrics-server/metrics-server
     # Overrides the image tag whose default is v{{ .Chart.AppVersion }}
-    tag: "v0.6.4"
+    tag: "v0.7.2"
     pullPolicy: IfNotPresent
     registry: k8s.m.daocloud.io
   imagePullSecrets: []
@@ -28,6 +28,7 @@ metrics-server:
   rbac:
     # Specifies whether RBAC resources should be created
     create: true
+    # Note: PodSecurityPolicy will not be created when Kubernetes version is 1.25 or later.
     pspEnabled: false
   apiService:
     # Specifies if the v1beta1.metrics.k8s.io API service should be created.
@@ -66,6 +67,7 @@ metrics-server:
     # if you use Weave network on EKS
     enabled: false
   replicas: 1
+  revisionHistoryLimit:
   updateStrategy: {}
   #   type: RollingUpdate
   #   rollingUpdate:
@@ -112,8 +114,18 @@ metrics-server:
     enabled: false
     image:
       repository: autoscaling/addon-resizer
-      tag: 1.8.19
+      tag: 1.8.21
       registry: k8s.m.daocloud.io
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
     resources:
       requests:
         cpu: 40m
@@ -155,6 +167,9 @@ metrics-server:
   tolerations: []
   affinity: {}
   topologySpreadConstraints: []
+  dnsConfig: {}
   # Annotations to add to the deployment
   deploymentAnnotations: {}
   schedulerName: ""
+  tmpVolume:
+    emptyDir: {}

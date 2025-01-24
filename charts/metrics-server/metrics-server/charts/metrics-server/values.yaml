@@ -29,6 +29,7 @@ serviceAccount:
 rbac:
   # Specifies whether RBAC resources should be created
   create: true
+  # Note: PodSecurityPolicy will not be created when Kubernetes version is 1.25 or later.
   pspEnabled: false
 
 apiService:
@@ -75,6 +76,8 @@ hostNetwork:
   enabled: false
 
 replicas: 1
+
+revisionHistoryLimit:
 
 updateStrategy: {}
 #   type: RollingUpdate
@@ -127,7 +130,17 @@ addonResizer:
   enabled: false
   image:
     repository: registry.k8s.io/autoscaling/addon-resizer
-    tag: 1.8.19
+    tag: 1.8.21
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+        - ALL
   resources:
     requests:
       cpu: 40m
@@ -176,7 +189,12 @@ affinity: {}
 
 topologySpreadConstraints: []
 
+dnsConfig: {}
+
 # Annotations to add to the deployment
 deploymentAnnotations: {}
 
 schedulerName: ""
+
+tmpVolume:
+  emptyDir: {}
