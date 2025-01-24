@@ -30,7 +30,7 @@ spec:
       {{- end }}
       containers:
         - name: patch
-          {{- if ge (.Values.scheduler.kubeScheduler.imageTag | substr 3 5| atoi) 22 }}
+          {{- if ge (.Capabilities.KubeVersion.Minor | int) 22 }}
           image: "{{ .Values.scheduler.patch.registry }}/{{ .Values.scheduler.patch.newRepository }}:{{ .Values.scheduler.patch.newTag }}"
           {{- else }}
           image: "{{ .Values.scheduler.patch.registry }}/{{ .Values.scheduler.patch.repository }}:{{ .Values.scheduler.patch.tag }}"
