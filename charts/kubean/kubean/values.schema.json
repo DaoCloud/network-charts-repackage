@@ -5,11 +5,84 @@
         "kubean": {
             "type": "object",
             "properties": {
+                "kubeanAdmission": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "object",
+                            "properties": {
+                                "registry": {
+                                    "type": "string"
+                                },
+                                "repository": {
+                                    "type": "string"
+                                },
+                                "tag": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "replicaCount": {
+                            "type": "integer"
+                        }
+                    }
+                },
                 "kubeanOperator": {
                     "type": "object",
                     "properties": {
                         "affinity": {
-                            "type": "object"
+                            "type": "object",
+                            "properties": {
+                                "podAntiAffinity": {
+                                    "type": "object",
+                                    "properties": {
+                                        "preferredDuringSchedulingIgnoredDuringExecution": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "podAffinityTerm": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "labelSelector": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "matchExpressions": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "key": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "operator": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "values": {
+                                                                                    "type": "array",
+                                                                                    "items": {
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "topologyKey": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "weight": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         },
                         "fullnameOverride": {
                             "type": "string"
@@ -39,6 +112,9 @@
                         },
                         "nodeSelector": {
                             "type": "object"
+                        },
+                        "operationsBackendLimit": {
+                            "type": "integer"
                         },
                         "podAnnotations": {
                             "type": "object"
