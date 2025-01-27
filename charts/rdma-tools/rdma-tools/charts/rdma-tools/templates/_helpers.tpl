@@ -31,3 +31,11 @@ return the image
 {{- end -}}
 {{- end -}}
 
+
+{{/*
+return the image
+*/}}
+{{- define "project.name" -}}
+{{- printf "%s" .Values.name -}}
+{{- printf "-%s" .Release.Name -}}
+{{- end -}}
