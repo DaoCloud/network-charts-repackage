@@ -59,7 +59,7 @@ spec:
           value: {{ toJson .Values.clusterDefaultPool.ipv4IPRanges | quote }}
         - name: SPIDERPOOL_INIT_DEFAULT_IPV4_IPPOOL_GATEWAY
           value: {{ .Values.clusterDefaultPool.ipv4Gateway | quote }}
-        {{- if .Values.ipam.enableSpiderSubnet }}
+        {{- if .Values.ipam.spiderSubnet.enable }}
         - name: SPIDERPOOL_INIT_DEFAULT_IPV4_SUBNET_NAME
           value: {{ .Values.clusterDefaultPool.ipv4SubnetName | quote }}
         {{- end }}
@@ -73,7 +73,7 @@ spec:
           value: {{ toJson .Values.clusterDefaultPool.ipv6IPRanges | quote }}
         - name: SPIDERPOOL_INIT_DEFAULT_IPV6_IPPOOL_GATEWAY
           value: {{ .Values.clusterDefaultPool.ipv6Gateway | quote }}
-        {{- if .Values.ipam.enableSpiderSubnet }}
+        {{- if .Values.ipam.spiderSubnet.enable }}
         - name: SPIDERPOOL_INIT_DEFAULT_IPV6_SUBNET_NAME
           value: {{ .Values.clusterDefaultPool.ipv6SubnetName | quote }}
         {{- end }}
