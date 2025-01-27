@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://spidernet-io.github.io/spiderpool
 export REPO_NAME=spiderpool
 export CHART_NAME=spiderpool
-export VERSION=0.9.8
+export VERSION=1.0.0
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
