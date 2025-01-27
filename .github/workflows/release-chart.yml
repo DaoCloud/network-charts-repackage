@@ -222,7 +222,7 @@ jobs:
           helm repo index  ./  --url ${{ steps.get_base_url.outputs.url }}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4.2.3
+        uses: peter-evans/create-pull-request@v7.0.6
         with:
           title: "robot Update chart to branch ${{ env.MERGE_BRANCH }} "
           commit-message: "robot Update chart from ${{ needs.package.outputs.ref }} to branch ${{ env.MERGE_BRANCH }} "
