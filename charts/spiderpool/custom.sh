@@ -47,8 +47,8 @@ yq -i '
     .spiderpool.global.imageRegistryOverride="ghcr.m.daocloud.io" |
     .spiderpool.ipam.enableIPv4=true |
     .spiderpool.ipam.enableIPv6=false |
-    .spiderpool.coordinator.detectGateway = true |
-    .spiderpool.coordinator.detectIPConflict = true | 
+    .spiderpool.ipam.enableIPConflictDetection = true |
+    .spiderpool.ipam.enableGatewayDetection = true | 
     .spiderpool.multus.multusCNI.uninstall=true |
     .spiderpool.multus.multusCNI.defaultCniCRName="" |
     .spiderpool.multus.multusCNI.image.registry="ghcr.m.daocloud.io" |
@@ -73,12 +73,14 @@ yq -i '
     .spiderpool.plugins.image.registry="ghcr.m.daocloud.io" |
     .spiderpool.rdma.rdmaSharedDevicePlugin.image.registry="ghcr.m.daocloud.io" |
     .spiderpool.sriov.image.resourcesInjector.tag="v1.5" |
-    .spiderpool.grafanaDashboard.labels."operator.insight.io/managed-by"="insight"
+    .spiderpool.grafanaDashboard.labels."operator.insight.io/managed-by"="insight" |
+    .spiderpool.spiderpoolController.podResourceInject.namespacesExclude= ["insight-system","mcamel-system","amamba-system","argocd","baize-system","ghippo-system","gpu-operator","dowl-system","hwameistor","insight-system","kairship-system","kangaroo-system","kant-system","kcollie-system","kcoral-system","kolm-system","kpanda-system","kubean-system","local-path-storage","mspider-system","nvidia-gpu-operator","skoala-system","spidernet-system","virtnest-system","ipavo-system"] + .spiderpool.spiderpoolController.podResourceInject.namespacesExclude |
+    .spiderpool.sriov.image.resourcesInjector.tag="v1.5" |
+    .spiderpool.spiderpoolController.podResourceInject.enabled=true
 ' ${CHART_DIRECTORY}/values.yaml
 
-#     .spiderpool.spiderpoolController.podResourceInject.namespacesExclude= ["insight-system","mcamel-system","amamba-system","argocd","baize-system","ghippo-system","gpu-operator","dowl-system","hwameistor","insight-system","kairship-system","kangaroo-system","kant-system","kcollie-system","kcoral-system","kolm-system","kpanda-system","kubean-system","local-path-storage","mspider-system","nvidia-gpu-operator","skoala-system","spidernet-system","virtnest-system","ipavo-system"] + .spiderpool.spiderpoolController.podResourceInject.namespacesExclude |
-# `.spiderpool.sriov.image.resourcesInjector.tag="v1.5"` is used as a fallback because resourcesInjector v1.6.0 does not include an ARM64 image.
-#     .spiderpool.spiderpoolController.podResourceInject.enabled=true |
+# spiderpool.sriov.image.resourcesInjector.tag="v1.5" is used as a fallback
+# because resourcesInjector v1.6.0 does not include an ARM64 image
 
 if ! grep "keywords:" ${CHART_DIRECTORY}/Chart.yaml &>/dev/null; then
     echo "keywords:" >>${CHART_DIRECTORY}/Chart.yaml

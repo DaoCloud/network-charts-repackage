@@ -20,13 +20,20 @@ data:
     enableIPv6: {{ .Values.ipam.enableIPv6 }}
     enableStatefulSet: {{ .Values.ipam.enableStatefulSet }}
     enableKubevirtStaticIP: {{ .Values.ipam.enableKubevirtStaticIP }}
-    enableSpiderSubnet: {{ .Values.ipam.enableSpiderSubnet }}
-    {{- if .Values.ipam.enableSpiderSubnet }}
-    clusterSubnetDefaultFlexibleIPNumber: {{ .Values.ipam.subnetDefaultFlexibleIPNumber }}
+    enableSpiderSubnet: {{ .Values.ipam.spiderSubnet.enable }}
+    enableAutoPoolForApplication: {{ .Values.ipam.spiderSubnet.autoPool.enable }}
+    enableIPConflictDetection: {{ .Values.ipam.enableIPConflictDetection }}
+    enableGatewayDetection: {{ .Values.ipam.enableGatewayDetection }}
+    {{- if and .Values.ipam.spiderSubnet.enable .Values.ipam.spiderSubnet.autoPool.enable }}
+    clusterSubnetDefaultFlexibleIPNumber: {{ .Values.ipam.spiderSubnet.autoPool.defaultRedundantIPNumber }}
     {{- else}}
     clusterSubnetDefaultFlexibleIPNumber: 0
     {{- end }}
     tuneSysctlConfig: {{ .Values.spiderpoolAgent.tuneSysctlConfig }}
+    podResourceInject:
+      enabled: {{ .Values.spiderpoolController.podResourceInject.enabled }}
+      namespacesExclude: {{ toJson .Values.spiderpoolController.podResourceInject.namespacesExclude }}
+      namespacesInclude: {{ toJson .Values.spiderpoolController.podResourceInject.namespacesInclude }}
 {{- if .Values.multus.multusCNI.install }}
 ---
 kind: ConfigMap

@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 0.9.8
+appVersion: 1.0.0
 description: underlay CNI solution for kubernetes
 home: https://spidernet-io.github.io/spiderpool
 icon: https://raw.githubusercontent.com/spidernet-io/spiderpool/main/docs/images/spider.svg
@@ -16,4 +16,4 @@ name: spiderpool
 sources:
 - https://github.com/spidernet-io/spiderpool
 type: application
-version: 0.9.8
+version: 1.0.0
