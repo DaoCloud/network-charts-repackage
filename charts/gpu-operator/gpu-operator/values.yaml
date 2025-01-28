@@ -46,7 +46,7 @@ gpu-operator:
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/gpu-operator-validator
     # If version is not specified, then default is to use chart.AppVersion
-    version: "v24.6.0"
+    version: "v24.9.2"
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env: []
@@ -60,7 +60,7 @@ gpu-operator:
     repository: nvcr.m.daocloud.io
     image: nvidia/gpu-operator
     # If version is not specified, then default is to use chart.AppVersion
-    version: "v24.6.0"
+    version: "v24.9.2"
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     priorityClassName: system-node-critical
@@ -71,11 +71,11 @@ gpu-operator:
     cleanupCRD: false
     # upgrade CRD on chart upgrade, requires --disable-openapi-validation flag
     # to be passed during helm upgrade.
-    upgradeCRD: false
+    upgradeCRD: true
     initContainer:
       image: nvidia/cuda
       repository: nvcr.m.daocloud.io
-      version: 12.5.1-base-ubi8
+      version: 12.6.3-base-ubi9
       imagePullPolicy: IfNotPresent
     tolerations:
       - key: "node-role.kubernetes.io/master"
@@ -182,7 +182,7 @@ gpu-operator:
       repository: nvcr.m.daocloud.io
       # When choosing a different version of k8s-driver-manager, DO NOT downgrade to a version lower than v0.6.4
       # to ensure k8s-driver-manager stays compatible with gpu-operator starting from v24.3.0
-      version: v0.6.10
+      version: v0.7.0
       imagePullPolicy: IfNotPresent
       env:
         - name: ENABLE_GPU_POD_EVICTION
@@ -232,7 +232,7 @@ gpu-operator:
     enabled: true
     repository: nvcr.m.daocloud.io
     image: nvidia/k8s-device-plugin
-    version: v0.16.1-ubi8
+    version: v0.17.0
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     args: []
@@ -289,7 +289,7 @@ gpu-operator:
     enabled: false
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/dcgm
-    version: 3.3.7-1-ubuntu22.04
+    version: 3.3.9-1-ubuntu22.04
     imagePullPolicy: IfNotPresent
     args: []
     env: []
@@ -298,7 +298,7 @@ gpu-operator:
     enabled: true
     repository: nvcr.m.daocloud.io
     image: nvidia/k8s/dcgm-exporter
-    version: 3.3.7-3.5.0-ubuntu22.04
+    version: 3.3.9-3.6.1-ubuntu22.04
     imagePullPolicy: IfNotPresent
     env:
       - name: DCGM_EXPORTER_LISTEN
@@ -323,13 +323,34 @@ gpu-operator:
           #   target_label: instance
           #   replacement: $1
           #   action: replace
+    # DCGM Exporter configuration
+    # This block is used to configure DCGM Exporter to emit a customized list of metrics.
+    # Use "name" to either point to an existing ConfigMap or to create a new one with a
+    # list of configurations (i.e with create=true).
+    # When pointing to an existing ConfigMap, the ConfigMap must exist in the same namespace as the release.
+    # The metrics are expected to be listed under a key called `dcgm-metrics.csv`.
+    # Use "data" to build an integrated ConfigMap from a set of custom metrics as
+    # part of the chart. An example of some custom metrics are shown below. Note that
+    # the contents of "data" must be in CSV format and be valid DCGM Exporter metric configurations.
+    # config:
+    # name: custom-dcgm-exporter-metrics
+    # create: true
+    # data: |-
+    # Format
+    # If line starts with a '#' it is considered a comment
+    # DCGM FIELD, Prometheus metric type, help message
+
     config:
       name: metrics-config
+  # Clocks
+  # DCGM_FI_DEV_SM_CLOCK,  gauge, SM clock frequency (in MHz).
+  # DCGM_FI_DEV_MEM_CLOCK, gauge, Memory clock frequency (in MHz).
+
   gfd:
     enabled: true
     repository: nvcr.m.daocloud.io
     image: nvidia/k8s-device-plugin
-    version: v0.16.1-ubi8
+    version: v0.17.0
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env:
@@ -342,7 +363,7 @@ gpu-operator:
     enabled: true
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/k8s-mig-manager
-    version: v0.8.0-ubuntu20.04
+    version: v0.10.0-ubuntu20.04
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env:
@@ -395,7 +416,7 @@ gpu-operator:
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/gpu-operator-validator
     # If version is not specified, then default is to use chart.AppVersion
-    version: "v24.6.0"
+    version: "v24.9.2"
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     resources: {}
@@ -412,7 +433,7 @@ gpu-operator:
     enabled: false
     repository: nvcr.io/nvidia/cloud-native
     image: gdrdrv
-    version: "v2.4.1-1"
+    version: "v2.4.1-2"
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env: []
@@ -431,7 +452,7 @@ gpu-operator:
       repository: nvcr.io/nvidia/cloud-native
       # When choosing a different version of k8s-driver-manager, DO NOT downgrade to a version lower than v0.6.4
       # to ensure k8s-driver-manager stays compatible with gpu-operator starting from v24.3.0
-      version: v0.6.10
+      version: v0.7.0
       imagePullPolicy: IfNotPresent
       env:
         - name: ENABLE_GPU_POD_EVICTION
@@ -442,7 +463,7 @@ gpu-operator:
     enabled: false
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/vgpu-device-manager
-    version: "v0.2.7"
+    version: v0.2.8
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env: []
@@ -453,7 +474,7 @@ gpu-operator:
     enabled: false
     repository: nvcr.m.daocloud.io
     image: nvidia/cuda
-    version: 12.5.1-base-ubi8
+    version: 12.6.3-base-ubi9
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env: []
@@ -463,7 +484,7 @@ gpu-operator:
       repository: nvcr.m.daocloud.io
       # When choosing a different version of k8s-driver-manager, DO NOT downgrade to a version lower than v0.6.4
       # to ensure k8s-driver-manager stays compatible with gpu-operator starting from v24.3.0
-      version: v0.6.10
+      version: v0.7.0
       imagePullPolicy: IfNotPresent
       env:
         - name: ENABLE_GPU_POD_EVICTION
@@ -488,7 +509,7 @@ gpu-operator:
             pullSecret: ""
     repository: nvcr.m.daocloud.io
     image: nvidia/cloud-native/k8s-kata-manager
-    version: v0.2.1
+    version: v0.2.2
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     env: []
@@ -497,7 +518,7 @@ gpu-operator:
     enabled: false
     repository: nvcr.m.daocloud.io
     image: nvidia/kubevirt-gpu-device-plugin
-    version: v1.2.9
+    version: v1.2.10
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
     args: []
@@ -565,5 +586,5 @@ gpu-operator:
     image:
       registry: k8s.m.daocloud.io
       repository: nfd/node-feature-discovery
-      tag: v0.16.3
+      tag: v0.16.6
   systemOS: ubuntu22.04

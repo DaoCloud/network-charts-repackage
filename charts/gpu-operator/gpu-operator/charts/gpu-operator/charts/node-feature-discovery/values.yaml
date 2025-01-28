@@ -6,7 +6,7 @@ image:
   # tag
 
   registry: k8s.m.daocloud.io
-  tag: v0.16.3
+  tag: v0.16.6
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -18,6 +18,8 @@ featureGates:
 priorityClassName: ""
 master:
   enable: true
+  extraEnvs: []
+  hostNetwork: false
   config: ### <NFD-MASTER-CONF-START-DO-NOT-REMOVE>
   # noPublish: false
   # autoDefaultNs: true
@@ -55,6 +57,7 @@ master:
   # be removed with it in a future release
   port: 8080
   metricsPort: 8081
+  healthPort: 8082
   instance:
   featureApi:
   resyncPeriod:
@@ -129,8 +132,22 @@ master:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [""]
+  livenessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 10
+    # failureThreshold: 3
+    # periodSeconds: 10
+  readinessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 5
+    failureThreshold: 10
+    # periodSeconds: 10
 worker:
   enable: true
+  extraEnvs: []
+  hostNetwork: false
   config: ### <NFD-WORKER-CONF-START-DO-NOT-REMOVE>
   #core:
   #  labelWhiteList:
@@ -375,6 +392,7 @@ worker:
   #          matchName: {op: In, value: ["SWAP", "X86", "ARM"]}
   ### <NFD-WORKER-CONF-END-DO-NOT-REMOVE>
   metricsPort: 8081
+  healthPort: 8082
   daemonsetAnnotations: {}
   podSecurityContext: {}
   # fsGroup: 2000
@@ -386,19 +404,18 @@ worker:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     # runAsUser: 1000
-  # livenessProbe: {}
-  ## NOTE: Currently not configurable, defaults are provided for the sake of extra documentation.
-  # grpc:
-  #   port: 8082
-  # initialDelaySeconds: 10
-  # periodSeconds: 10
-  # readinessProbe: {}
-  ## NOTE: Currently not configurable, defaults are provided for the sake of extra documentation.
-  # grpc:
-  #   port: 8082
-  # initialDelaySeconds: 5
-  # periodSeconds: 10
-  # failureThreshold: 10
+  livenessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 10
+    # failureThreshold: 3
+    # periodSeconds: 10
+  readinessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 5
+    failureThreshold: 10
+    # periodSeconds: 10
   serviceAccount:
     # Specifies whether a service account should be created.
     # We create this by default to make it easier for downstream users to apply PodSecurityPolicies.
@@ -408,6 +425,8 @@ worker:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name:
+  # specify how many old ControllerRevisions for the DaemonSet to retain.
+  revisionHistoryLimit:
   rbac:
     create: true
   # Allow users to mount the hostPath /usr/src, useful for RHCOS on s390x
@@ -436,13 +455,18 @@ topologyUpdater:
   ### <NFD-TOPOLOGY-UPDATER-CONF-END-DO-NOT-REMOVE>
   enable: false
   createCRDs: false
+  extraEnvs: []
+  hostNetwork: false
   serviceAccount:
     create: true
     annotations: {}
     name:
+  # specify how many old ControllerRevisions for the DaemonSet to retain.
+  revisionHistoryLimit:
   rbac:
     create: true
   metricsPort: 8081
+  healthPort: 8082
   kubeletConfigPath:
   kubeletPodResourcesSockPath:
   updateInterval: 60s
@@ -455,19 +479,18 @@ topologyUpdater:
       drop: ["ALL"]
     readOnlyRootFilesystem: true
     runAsUser: 0
-  # livenessProbe: {}
-  ## NOTE: Currently not configurable, defaults are provided for the sake of extra documentation.
-  # grpc:
-  #   port: 8082
-  # initialDelaySeconds: 10
-  # periodSeconds: 10
-  # readinessProbe: {}
-  ## NOTE: Currently not configurable, defaults are provided for the sake of extra documentation.
-  # grpc:
-  #   port: 8082
-  # initialDelaySeconds: 5
-  # periodSeconds: 10
-  # failureThreshold: 10
+  livenessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 10
+    # failureThreshold: 3
+    # periodSeconds: 10
+  readinessProbe:
+    grpc:
+      port: 8082
+    initialDelaySeconds: 5
+    failureThreshold: 10
+    # periodSeconds: 10
   resources:
     limits:
       memory: 60Mi
@@ -482,6 +505,8 @@ topologyUpdater:
   podSetFingerprint: true
 gc:
   enable: true
+  extraEnvs: []
+  hostNetwork: false
   replicaCount: 1
   serviceAccount:
     create: true
