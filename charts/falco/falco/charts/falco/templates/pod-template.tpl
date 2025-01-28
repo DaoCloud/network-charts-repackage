@@ -12,6 +12,17 @@ metadata:
     {{- if and .Values.certs (not .Values.certs.existingSecret) }}
     checksum/certs: {{ include (print $.Template.BasePath "/certs-secret.yaml") . | sha256sum }}
     {{- end }}
+    {{- if .Values.driver.enabled }}
+    {{- if (or (eq .Values.driver.kind "modern_ebpf") (eq .Values.driver.kind "modern-bpf")) }}
+    {{- if .Values.driver.modernEbpf.leastPrivileged }}
+    container.apparmor.security.beta.kubernetes.io/{{ .Chart.Name }}: unconfined
+    {{- end }}
+    {{- else if eq .Values.driver.kind "ebpf" }}
+    {{- if .Values.driver.ebpf.leastPrivileged }}
+    container.apparmor.security.beta.kubernetes.io/{{ .Chart.Name }}: unconfined
+    {{- end }}
+    {{- end }}
+    {{- end }}
     {{- with .Values.podAnnotations }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -46,6 +57,11 @@ spec:
   imagePullSecrets: 
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if eq .Values.driver.kind "gvisor" }}
+  hostNetwork: true
+  hostPID: true
+  dnsPolicy: ClusterFirstWithHostNet
+  {{- end }}
   containers:
     - name: {{ .Chart.Name }}
       image: {{ include "falco.image" . }}
@@ -56,26 +72,9 @@ spec:
         {{- include "falco.securityContext" . | nindent 8 }}
       args:
         - /usr/bin/falco
+        {{- include "falco.configSyscallSource" . | indent 8 }}
         {{- with .Values.collectors }}
         {{- if .enabled }}
-        {{- if .containerd.enabled }}
-        - --cri
-        - /run/containerd/containerd.sock
-        {{- end }}
-        {{- if .crio.enabled }}
-        - --cri
-        - /run/crio/crio.sock
-        {{- end }}
-        {{- if .kubernetes.enabled }}
-        - -K
-        - {{ .kubernetes.apiAuth }}
-        - -k
-        - {{ .kubernetes.apiUrl }}
-        {{- if .kubernetes.enableNodeFilter }}
-        - --k8s-node
-        - "$(FALCO_K8S_NODE_NAME)"
-        {{- end }}
-        {{- end }}
         - -pk
         {{- end }}
         {{- end }}
@@ -83,24 +82,25 @@ spec:
       {{- toYaml . | nindent 8 }}
     {{- end }}
       env:
+        - name: HOST_ROOT
+          value: /host
+        - name: FALCO_HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: FALCO_K8S_NODE_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-      {{- if or (not .Values.driver.enabled) (and .Values.driver.loader.enabled .Values.driver.loader.initContainer.enabled) }}
-        - name: SKIP_DRIVER_LOADER
-          value:
+      {{- if .Values.extra.env }}
+      {{- include "falco.renderTemplate" ( dict "value" .Values.extra.env "context" $) | nindent 8 }}
       {{- end }}
-      {{- if and .Values.driver.enabled (eq .Values.driver.kind "ebpf") }}
-        - name: FALCO_BPF_PROBE
-          value: {{ .Values.driver.ebpf.path }}
-      {{- end }}
-      {{- range $key, $value := .Values.extra.env }}
-        - name: "{{ $key }}"
-          value: "{{ $value }}"
-      {{- end }}
-      {{- if .Values.falco.webserver.enabled }}
       tty: {{ .Values.tty }}
+      {{- if .Values.falco.webserver.enabled }}
+      ports:
+        - containerPort: {{ .Values.falco.webserver.listen_port }}
+          name: web
+          protocol: TCP
       livenessProbe:
         initialDelaySeconds: {{ .Values.healthChecks.livenessProbe.initialDelaySeconds }}
         timeoutSeconds: {{ .Values.healthChecks.livenessProbe.timeoutSeconds }}
@@ -123,13 +123,25 @@ spec:
           {{- end }}
       {{- end }}
       volumeMounts:
+      {{- if or .Values.falcoctl.artifact.install.enabled .Values.falcoctl.artifact.follow.enabled }}
+      {{- if has "rulesfile" .Values.falcoctl.config.artifact.allowedTypes }}
+        - mountPath: /etc/falco
+          name: rulesfiles-install-dir
+      {{- end }}
+      {{- if has "plugin" .Values.falcoctl.config.artifact.allowedTypes }}
+        - mountPath: /usr/share/falco/plugins
+          name: plugins-install-dir
+      {{- end }}
+      {{- end }}
+      {{- if eq (include "driverLoader.enabled" .) "true" }}
+        - mountPath: /etc/falco/config.d
+          name: specialized-falco-configs
+      {{- end }}
         - mountPath: /root/.falco
           name: root-falco-fs
-        {{- if or .Values.driver.enabled .Values.mounts.enforceProcMount }}
         - mountPath: /host/proc
           name: proc-fs
-        {{- end }}
-        {{- if and .Values.driver.enabled (not .Values.driver.loader.initContainer.enabled) }}
+        {{- if and .Values.driver.enabled (not .Values.driver.loader.enabled) }}
           readOnly: true
         - mountPath: /host/boot
           name: boot-fs
@@ -139,14 +151,18 @@ spec:
         - mountPath: /host/usr
           name: usr-fs
           readOnly: true
+        {{- end }}
+        {{- if .Values.driver.enabled }}
         - mountPath: /host/etc
           name: etc-fs
           readOnly: true
-        {{- end }}
-        {{- if and .Values.driver.enabled (eq .Values.driver.kind "module") }}
+        {{- end -}}
+        {{- if and .Values.driver.enabled (or (eq .Values.driver.kind "kmod") (eq .Values.driver.kind "module") (eq .Values.driver.kind "auto")) }}
         - mountPath: /host/dev
           name: dev-fs
           readOnly: true
+        - name: sys-fs
+          mountPath: /sys/module
         {{- end }}
         {{- if and .Values.driver.enabled (and (eq .Values.driver.kind "ebpf") (contains "falco-no-driver" .Values.image.repository)) }}
         - name: debugfs
@@ -155,21 +171,22 @@ spec:
         {{- with .Values.collectors }}
         {{- if .enabled }}
         {{- if .docker.enabled }}
-        - mountPath: /host/var/run/docker.sock
+        - mountPath: /host/var/run/
           name: docker-socket
         {{- end }}
         {{- if .containerd.enabled }}
-        - mountPath: /host/run/containerd/containerd.sock
+        - mountPath: /host/run/containerd/
           name: containerd-socket
         {{- end }}
         {{- if .crio.enabled }}
-        - mountPath: /host/run/crio/crio.sock
+        - mountPath: /host/run/crio/
           name: crio-socket
         {{- end }}
         {{- end }}
         {{- end }}
-        - mountPath: /etc/falco
-          name: config-volume
+        - mountPath: /etc/falco/falco.yaml
+          name: falco-yaml
+          subPath: falco.yaml
         {{- if .Values.customRules }}
         - mountPath: /etc/falco/rules.d
           name: rules-volume
@@ -179,20 +196,53 @@ spec:
           name: certs-volume
           readOnly: true
         {{- end }}
+        {{- if or .Values.certs.existingClientSecret (and .Values.certs.client.key .Values.certs.client.crt .Values.certs.ca.crt) }}
+        - mountPath: /etc/falco/certs/client
+          name: client-certs-volume
+          readOnly: true
+        {{- end }}
         {{- include "falco.unixSocketVolumeMount"  . | nindent 8 -}}
         {{- with .Values.mounts.volumeMounts }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+        {{- if eq .Values.driver.kind "gvisor" }}
+        - mountPath: /usr/local/bin/runsc
+          name: runsc-path
+          readOnly: true
+        - mountPath: /host{{ .Values.driver.gvisor.runsc.root }}
+          name: runsc-root
+        - mountPath: /host{{ .Values.driver.gvisor.runsc.config }}
+          name: runsc-config
+        - mountPath: /gvisor-config
+          name: falco-gvisor-config
+        {{- end }}
+  {{- if .Values.falcoctl.artifact.follow.enabled }}
+    {{- include "falcoctl.sidecar" . | nindent 4 }}
+  {{- end }}
   initContainers:
   {{- with .Values.extra.initContainers }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- if .Values.driver.enabled }}
-  {{- if and .Values.driver.loader.enabled .Values.driver.loader.initContainer.enabled }}
+  {{- if eq .Values.driver.kind "gvisor" }}
+  {{- include "falco.gvisor.initContainer" . | nindent 4 }}
+  {{- end }}
+  {{- if eq (include "driverLoader.enabled" .) "true" }}
     {{- include "falco.driverLoader.initContainer" . | nindent 4 }}
   {{- end }}
+  {{- if .Values.falcoctl.artifact.install.enabled }}
+    {{- include "falcoctl.initContainer" . | nindent 4 }}
   {{- end }}
   volumes:
+    {{- if eq (include "driverLoader.enabled" .) "true" }}
+    - name: specialized-falco-configs
+      emptyDir: {}
+    {{- end }}
+    {{- if or .Values.falcoctl.artifact.install.enabled .Values.falcoctl.artifact.follow.enabled }}
+    - name: plugins-install-dir
+      emptyDir: {}
+    - name: rulesfiles-install-dir
+      emptyDir: {}
+    {{- end }}
     - name: root-falco-fs
       emptyDir: {}
     {{- if .Values.driver.enabled }}  
@@ -209,10 +259,13 @@ spec:
       hostPath:
         path: /etc
     {{- end }}
-    {{- if and .Values.driver.enabled (eq .Values.driver.kind "module") }}
+    {{- if and .Values.driver.enabled (or (eq .Values.driver.kind "kmod") (eq .Values.driver.kind "module") (eq .Values.driver.kind "auto")) }}
     - name: dev-fs
       hostPath:
         path: /dev
+    - name: sys-fs
+      hostPath:
+        path: /sys/module
     {{- end }}
     {{- if and .Values.driver.enabled (and (eq .Values.driver.kind "ebpf") (contains "falco-no-driver" .Values.image.repository)) }}
     - name: debugfs
@@ -224,41 +277,50 @@ spec:
     {{- if .docker.enabled }}
     - name: docker-socket
       hostPath:
-        path: {{ .docker.socket }}
+        path: {{ dir .docker.socket }}
     {{- end }}
     {{- if .containerd.enabled }}
     - name: containerd-socket
       hostPath:
-        path: {{ .containerd.socket }}
+        path: {{ dir .containerd.socket }}
     {{- end }}
     {{- if .crio.enabled }}
     - name: crio-socket
       hostPath:
-        path: {{ .crio.socket }}
+        path: {{ dir .crio.socket }}
     {{- end }}
     {{- end }}
     {{- end }}
-    {{- if or .Values.driver.enabled .Values.mounts.enforceProcMount }}
     - name: proc-fs
       hostPath:
         path: /proc
+    {{- if eq .Values.driver.kind "gvisor" }}
+    - name: runsc-path
+      hostPath:
+        path: {{ .Values.driver.gvisor.runsc.path }}/runsc
+        type: File
+    - name: runsc-root
+      hostPath:
+        path: {{ .Values.driver.gvisor.runsc.root }}
+    - name: runsc-config
+      hostPath:
+        path: {{ .Values.driver.gvisor.runsc.config }}
+        type: File
+    - name: falco-gvisor-config
+      emptyDir: {}
     {{- end }}
-    - name: config-volume
+    - name: falcoctl-config-volume
+      configMap: 
+        name: {{ include "falco.fullname" . }}-falcoctl
+        items:
+          - key: falcoctl.yaml
+            path: falcoctl.yaml
+    - name: falco-yaml
       configMap:
         name: {{ include "falco.fullname" . }}
         items:
-          - key: falco.yaml
-            path: falco.yaml
-          - key: falco_rules.yaml
-            path: falco_rules.yaml
-          - key: falco_rules.local.yaml
-            path: falco_rules.local.yaml
-          - key: application_rules.yaml
-            path: rules.available/application_rules.yaml
-          - key: k8s_audit_rules.yaml
-            path: k8s_audit_rules.yaml
-          - key: aws_cloudtrail_rules.yaml
-            path: aws_cloudtrail_rules.yaml
+        - key: falco.yaml
+          path: falco.yaml
     {{- if .Values.customRules }}
     - name: rules-volume
       configMap:
@@ -273,19 +335,35 @@ spec:
         secretName: {{ include "falco.fullname" . }}-certs
         {{- end }}
     {{- end }}
+    {{- if or .Values.certs.existingClientSecret (and .Values.certs.client.key .Values.certs.client.crt .Values.certs.ca.crt) }}
+    - name: client-certs-volume
+      secret:
+        {{- if .Values.certs.existingClientSecret }}
+        secretName: {{ .Values.certs.existingClientSecret }}
+        {{- else }}
+        secretName: {{ include "falco.fullname" . }}-client-certs
+        {{- end }}
+    {{- end }}
     {{- include "falco.unixSocketVolume" . | nindent 4 -}}
     {{- with .Values.mounts.volumes }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
-{{- end -}}
+    {{- end -}}
 
 {{- define "falco.driverLoader.initContainer" -}}
 - name: {{ .Chart.Name }}-driver-loader
   image: {{ include "falco.driverLoader.image" . }}
   imagePullPolicy: {{ .Values.driver.loader.initContainer.image.pullPolicy }}
-  {{- with .Values.driver.loader.initContainer.args }}
   args:
+  {{- with .Values.driver.loader.initContainer.args }}
     {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if eq .Values.driver.kind "module" }}
+    - kmod
+  {{- else if eq .Values.driver.kind "modern-bpf"}}
+    - modern_ebpf
+  {{- else }}
+    - {{ .Values.driver.kind }}
   {{- end }}
   {{- with .Values.driver.loader.initContainer.resources }}
   resources:
@@ -294,7 +372,7 @@ spec:
   securityContext:
   {{- if .Values.driver.loader.initContainer.securityContext }}
     {{- toYaml .Values.driver.loader.initContainer.securityContext | nindent 4 }}
-  {{- else if eq .Values.driver.kind "module" }}
+  {{- else if (or (eq .Values.driver.kind "kmod") (eq .Values.driver.kind "module") (eq .Values.driver.kind "auto")) }}
     privileged: true
   {{- end }}
   volumeMounts:
@@ -314,25 +392,42 @@ spec:
     - mountPath: /host/etc
       name: etc-fs
       readOnly: true
+    - mountPath: /etc/falco/config.d
+      name: specialized-falco-configs
   env:
-  {{- if eq .Values.driver.kind "ebpf" }}
-    - name: FALCO_BPF_PROBE
-      value: {{ .Values.driver.ebpf.path }}
+    - name: HOST_ROOT
+      value: /host
+  {{- if .Values.driver.loader.initContainer.env }}
+  {{- include "falco.renderTemplate" ( dict "value" .Values.driver.loader.initContainer.env "context" $) | nindent 4 }}
   {{- end }}
-  {{- range $key, $value := .Values.driver.loader.initContainer.env }}
-    - name: "{{ $key }}"
-      value: "{{ $value }}"
+  {{- if eq .Values.driver.kind "auto" }}
+    - name: FALCOCTL_DRIVER_CONFIG_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: FALCOCTL_DRIVER_CONFIG_CONFIGMAP
+      value: {{ include "falco.fullname" . }}
+  {{- else }}
+    - name: FALCOCTL_DRIVER_CONFIG_UPDATE_FALCO
+      value: "false"
   {{- end }}
 {{- end -}}
 
 {{- define "falco.securityContext" -}}
 {{- $securityContext := dict -}}
 {{- if .Values.driver.enabled -}}
-  {{- if eq .Values.driver.kind "module" -}}
+  {{- if (or (eq .Values.driver.kind "kmod") (eq .Values.driver.kind "module") (eq .Values.driver.kind "auto")) -}}
     {{- $securityContext := set $securityContext "privileged" true -}}
   {{- end -}}
   {{- if eq .Values.driver.kind "ebpf" -}}
     {{- if .Values.driver.ebpf.leastPrivileged -}}
+      {{- $securityContext := set $securityContext "capabilities" (dict "add" (list "SYS_ADMIN" "SYS_RESOURCE" "SYS_PTRACE")) -}}
+    {{- else -}}
+      {{- $securityContext := set $securityContext "privileged" true -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if (or (eq .Values.driver.kind "modern_ebpf") (eq .Values.driver.kind "modern-bpf")) -}}
+    {{- if .Values.driver.modernEbpf.leastPrivileged -}}
       {{- $securityContext := set $securityContext "capabilities" (dict "add" (list "BPF" "SYS_RESOURCE" "PERFMON" "SYS_PTRACE")) -}}
     {{- else -}}
       {{- $securityContext := set $securityContext "privileged" true -}}
