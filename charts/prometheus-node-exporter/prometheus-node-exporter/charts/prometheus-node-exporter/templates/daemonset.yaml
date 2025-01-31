@@ -13,6 +13,7 @@ spec:
   selector:
     matchLabels:
       {{- include "prometheus-node-exporter.selectorLabels" . | nindent 6 }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   {{- with .Values.updateStrategy }}
   updateStrategy:
     {{- toYaml . | nindent 4 }}
@@ -25,8 +26,11 @@ spec:
       {{- end }}
       labels:
         {{- include "prometheus-node-exporter.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
     spec:
-      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      automountServiceAccountToken: {{ ternary true false (or .Values.serviceAccount.automountServiceAccountToken .Values.kubeRBACProxy.enabled) }}
       {{- with .Values.securityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -39,7 +43,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "prometheus-node-exporter.serviceAccountName" . }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
       containers:
+        {{- $servicePort := ternary .Values.kubeRBACProxy.port .Values.service.port .Values.kubeRBACProxy.enabled }}
         - name: node-exporter
           image: {{ include "prometheus-node-exporter.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -48,8 +56,11 @@ spec:
             - --path.sysfs=/host/sys
             {{- if .Values.hostRootFsMount.enabled }}
             - --path.rootfs=/host/root
+            {{- if semverCompare ">=1.4.0-0" (coalesce .Values.version .Values.image.tag .Chart.AppVersion) }}
+            - --path.udev.data=/host/root/run/udev/data
             {{- end }}
-            - --web.listen-address=[$(HOST_IP)]:{{ .Values.service.port }}
+            {{- end }}
+            - --web.listen-address=[$(HOST_IP)]:{{ $servicePort }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -59,7 +70,9 @@ spec:
           {{- end }}
           env:
             - name: HOST_IP
-              {{- if .Values.service.listenOnAllInterfaces }}
+              {{- if .Values.kubeRBACProxy.enabled }}
+              value: 127.0.0.1
+              {{- else if .Values.service.listenOnAllInterfaces }}
               value: 0.0.0.0
               {{- else }}
               valueFrom:
@@ -67,24 +80,29 @@ spec:
                   apiVersion: v1
                   fieldPath: status.hostIP
               {{- end }}
-          {{- range $key, $value := .Values.env }}
-          - name: {{ $key }}
-            value: {{ $value | quote }}
-          {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- if eq .Values.kubeRBACProxy.enabled false }}
           ports:
             - name: {{ .Values.service.portName }}
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          {{- end }}
           livenessProbe:
             failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
             httpGet:
+              {{- if .Values.kubeRBACProxy.enabled }}
+              host: 127.0.0.1
+              {{- end }}
               httpHeaders:
               {{- range $_, $header := .Values.livenessProbe.httpGet.httpHeaders }}
               - name: {{ $header.name }}
                 value: {{ $header.value }}
               {{- end }}
               path: /
-              port: {{ .Values.service.port }}
+              port: {{ $servicePort }}
               scheme: {{ upper .Values.livenessProbe.httpGet.scheme }}
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
@@ -93,13 +111,16 @@ spec:
           readinessProbe:
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
             httpGet:
+              {{- if .Values.kubeRBACProxy.enabled }}
+              host: 127.0.0.1
+              {{- end }}
               httpHeaders:
               {{- range $_, $header := .Values.readinessProbe.httpGet.httpHeaders }}
               - name: {{ $header.name }}
                 value: {{ $header.value }}
               {{- end }}
               path: /
-              port: {{ .Values.service.port }}
+              port: {{ $servicePort }}
               scheme: {{ upper .Values.readinessProbe.httpGet.scheme }}
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
@@ -109,12 +130,24 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.terminationMessageParams.enabled }}
+          {{- with .Values.terminationMessageParams }}
+          terminationMessagePath: {{ .terminationMessagePath }}
+          terminationMessagePolicy: {{ .terminationMessagePolicy }}
+          {{- end }}
+          {{- end }}
           volumeMounts:
             - name: proc
               mountPath: /host/proc
+              {{- with .Values.hostProcFsMount.mountPropagation }}
+              mountPropagation: {{ . }}
+              {{- end }}
               readOnly:  true
             - name: sys
               mountPath: /host/sys
+              {{- with .Values.hostSysFsMount.mountPropagation }}
+              mountPropagation: {{ . }}
+              {{- end }}
               readOnly: true
             {{- if .Values.hostRootFsMount.enabled }}
             - name: root
@@ -145,35 +178,97 @@ spec:
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
             {{- end }}
-        {{- with .Values.sidecars }}
-        {{- toYaml . | nindent 8 }}
-          {{- if or .Values.sidecarVolumeMount .Values.sidecarHostVolumeMounts }}
+            {{- with .Values.extraVolumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- range .Values.sidecars }}
+          {{- $overwrites := dict "volumeMounts" (concat (include "prometheus-node-exporter.sidecarVolumeMounts" $ | fromYamlArray) (.volumeMounts | default list) | default list) }}
+          {{- $defaults := dict "image" (include "prometheus-node-exporter.image" $) "securityContext" $.Values.containerSecurityContext "imagePullPolicy" $.Values.image.pullPolicy }}
+        - {{- toYaml (merge $overwrites . $defaults) | nindent 10 }}
+        {{- end }}
+        {{-  if .Values.kubeRBACProxy.enabled  }}
+        - name: kube-rbac-proxy
+          args:
+            {{-  if .Values.kubeRBACProxy.extraArgs  }}
+            {{- .Values.kubeRBACProxy.extraArgs | toYaml | nindent 12 }}
+            {{-  end  }}
+            - --secure-listen-address=:{{ .Values.service.port}}
+            - --upstream=http://127.0.0.1:{{ $servicePort }}/
+            - --proxy-endpoints-port={{ .Values.kubeRBACProxy.proxyEndpointsPort }}
+            - --config-file=/etc/kube-rbac-proxy-config/config-file.yaml
+            {{- if and .Values.kubeRBACProxy.tls.enabled .Values.tlsSecret.enabled }}
+            - --tls-cert-file=/tls/private/{{ .Values.tlsSecret.certItem }}
+            - --tls-private-key-file=/tls/private/{{ .Values.tlsSecret.keyItem }}
+            {{- if and .Values.kubeRBACProxy.tls.tlsClientAuth .Values.tlsSecret.caItem }}
+            - --client-ca-file=/tls/private/{{ .Values.tlsSecret.caItem }}
+            {{- end }}
+            {{- end }}
           volumeMounts:
-            {{- range $_, $mount := .Values.sidecarVolumeMount }}
-            - name: {{ $mount.name }}
-              mountPath: {{ $mount.mountPath }}
-              readOnly: {{ $mount.readOnly }}
+            - name: kube-rbac-proxy-config
+              mountPath: /etc/kube-rbac-proxy-config
+            {{- if and .Values.kubeRBACProxy.tls.enabled .Values.tlsSecret.enabled }}
+            - name: {{ tpl .Values.tlsSecret.volumeName . | quote }}
+              mountPath: /tls/private
+              readOnly: true
             {{- end }}
-            {{- range $_, $mount := .Values.sidecarHostVolumeMounts }}
-            - name: {{ $mount.name }}
-              mountPath: {{ $mount.mountPath }}
-              readOnly: {{ $mount.readOnly }}
-            {{- if $mount.mountPropagation }}
-              mountPropagation: {{ $mount.mountPropagation }}
+            {{- with .Values.kubeRBACProxy.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
+          imagePullPolicy: {{ .Values.kubeRBACProxy.image.pullPolicy }}
+          {{- if .Values.kubeRBACProxy.image.sha }}
+          image: "{{ .Values.global.imageRegistry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}@sha256:{{ .Values.kubeRBACProxy.image.sha }}"
+          {{- else }}
+          image: "{{ .Values.global.imageRegistry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}"
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.service.port}}
+              name: {{ .Values.kubeRBACProxy.portName }}
+              {{- if .Values.kubeRBACProxy.enableHostPort }}
+              hostPort: {{ .Values.service.port }}
+              {{- end }}
+            - containerPort: {{ .Values.kubeRBACProxy.proxyEndpointsPort }}
+              {{- if .Values.kubeRBACProxy.enableProxyEndpointsHostPort }}
+              hostPort: {{ .Values.kubeRBACProxy.proxyEndpointsPort }}
+              {{- end }}
+              name: "http-healthz"
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              port: {{ .Values.kubeRBACProxy.proxyEndpointsPort }}
+              path: healthz
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          {{- if .Values.kubeRBACProxy.resources }}
+          resources:
+          {{- toYaml .Values.kubeRBACProxy.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.terminationMessageParams.enabled }}
+          {{- with .Values.terminationMessageParams }}
+          terminationMessagePath: {{ .terminationMessagePath }}
+          terminationMessagePolicy: {{ .terminationMessagePolicy }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.kubeRBACProxy.env }}
+          env:
+            {{- range $key, $value := $.Values.kubeRBACProxy.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
             {{- end }}
           {{- end }}
+          {{- if .Values.kubeRBACProxy.containerSecurityContext }}
+          securityContext:
+          {{ toYaml .Values.kubeRBACProxy.containerSecurityContext | nindent 12 }}
         {{- end }}
-      {{- with .Values.imagePullSecrets }}
+        {{- end }}
+      {{- if or .Values.imagePullSecrets .Values.global.imagePullSecrets }}
       imagePullSecrets:
-        {{ toYaml . | nindent 8 }}
+        {{- include "prometheus-node-exporter.imagePullSecrets" (dict "Values" .Values "imagePullSecrets" .Values.imagePullSecrets) | indent 8 }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
       hostPID: {{ .Values.hostPID }}
-      {{- with .Values.affinity }}
+      hostIPC: {{ .Values.hostIPC }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "prometheus-node-exporter.mergedAffinities" . | nindent 8 }}
       {{- with .Values.dnsConfig }}
       dnsConfig:
         {{- toYaml . | nindent 8 }}
@@ -181,6 +276,9 @@ spec:
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.restartPolicy }}
+      restartPolicy: {{ . }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
@@ -202,6 +300,9 @@ spec:
         - name: {{ $mount.name }}
           hostPath:
             path: {{ $mount.hostPath }}
+            {{- with $mount.type }}
+            type: {{ . }}
+            {{- end }}
         {{- end }}
         {{- range $_, $mount := .Values.sidecarVolumeMount }}
         - name: {{ $mount.name }}
@@ -222,4 +323,26 @@ spec:
         - name: {{ $mount.name }}
           secret:
             secretName: {{ $mount.name }}
+        {{- end }}
+        {{- if .Values.kubeRBACProxy.enabled }}
+        - name: kube-rbac-proxy-config
+          configMap:
+            name: {{ template "prometheus-node-exporter.fullname" . }}-rbac-config
+        {{- end }}
+        {{- if .Values.tlsSecret.enabled }}
+        - name: {{ tpl .Values.tlsSecret.volumeName . | quote }}
+          secret:
+            secretName: {{ tpl .Values.tlsSecret.secretName . | quote }}
+            items:
+              - key: {{ required "Value tlsSecret.certItem must be set." .Values.tlsSecret.certItem | quote }}
+                path: {{ .Values.tlsSecret.certItem | quote }}
+              - key: {{ required "Value tlsSecret.keyItem must be set." .Values.tlsSecret.keyItem | quote }}
+                path: {{ .Values.tlsSecret.keyItem | quote }}
+              {{- if .Values.tlsSecret.caItem }}
+              - key: {{ .Values.tlsSecret.caItem | quote }}
+                path: {{ .Values.tlsSecret.caItem | quote }}
+              {{- end }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
