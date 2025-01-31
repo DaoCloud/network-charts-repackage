@@ -42,7 +42,7 @@ argo-rollouts:
     revisionHistoryLimit: 10
     imageRegistry: quay.m.daocloud.io
     repository: argoproj/argo-rollouts
-    tag: v1.7.2
+    tag: v1.8.0
   controller:
     # -- Value of label `app.kubernetes.io/component`
     component: rollouts-controller
@@ -75,6 +75,10 @@ argo-rollouts:
     #   topologyKey: topology.kubernetes.io/zone
     #   whenUnsatisfiable: DoNotSchedule
 
+    # -- terminationGracePeriodSeconds for container lifecycle hook
+    terminationGracePeriodSeconds: 30
+    # -- Specify lifecycle hooks for the  controller
+    lifecycle: {}
     # -- [priorityClassName] for the controller
     priorityClassName: ""
     # -- The number of controller pods to run
@@ -85,7 +89,7 @@ argo-rollouts:
       # -- Repository to use
       repository: argoproj/argo-rollouts
       # -- Overrides the image tag (default is the chart appVersion)
-      tag: "v1.7.2"
+      tag: "v1.8.0"
       # -- Image pull policy
       pullPolicy: IfNotPresent
     # -- Additional command line arguments to pass to rollouts-controller.  A list of flags.
@@ -196,17 +200,15 @@ argo-rollouts:
 
     # -- Configures 3rd party metric providers for controller
     ## Ref: https://argo-rollouts.readthedocs.io/en/stable/analysis/plugins/
-    metricProviderPlugins: {}
-    # metricProviderPlugins: |-
-    #   - name: "argoproj-labs/sample-prometheus" # name of the plugin, it must match the name required by the plugin so that it can find its configuration
-    #     location: "file://./my-custom-plugin" # supports http(s):// urls and file://
+    metricProviderPlugins: []
+    # - name: "argoproj-labs/sample-prometheus" # name of the plugin, it must match the name required by the plugin so that it can find its configuration
+    #   location: "file://./my-custom-plugin" # supports http(s):// urls and file://
 
     # -- Configures 3rd party traffic router plugins for controller
     ## Ref: https://argo-rollouts.readthedocs.io/en/stable/features/traffic-management/plugins/
-    trafficRouterPlugins: {}
-    # trafficRouterPlugins: |-
-    #   - name: "argoproj-labs/sample-nginx" # name of the plugin, it must match the name required by the plugin so it can find it's configuration
-    #     location: "file://./my-custom-plugin" # supports http(s):// urls and file://
+    trafficRouterPlugins: []
+    # - name: "argoproj-labs/sample-nginx" # name of the plugin, it must match the name required by the plugin so it can find it's configuration
+    #   location: "file://./my-custom-plugin" # supports http(s):// urls and file://
   serviceAccount:
     # -- Specifies whether a service account should be created
     create: true
@@ -312,7 +314,7 @@ argo-rollouts:
       # --  Repository to use
       repository: argoproj/kubectl-argo-rollouts
       # -- Overrides the image tag (default is the chart appVersion)
-      tag: "v1.7.2"
+      tag: "v1.8.0"
       # -- Image pull policy
       pullPolicy: IfNotPresent
     # -- Additional command line arguments to pass to rollouts-dashboard. A list of flags.
@@ -372,7 +374,7 @@ argo-rollouts:
       # -- Maximum number / percentage of pods that may be made unavailable
       maxUnavailable: # 0
     ## Ingress configuration.
-    ## ref: https://kubernetes.io/docs/user-guide/ingress/
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
     ##
     ingress:
       # -- Enable dashboard ingress support
@@ -424,7 +426,8 @@ argo-rollouts:
       # -- Whether to create notifications configmap
       create: true
     secret:
-      # -- Whether to create notifications secret
+      # -- Whether to create notifications secret.
+      ## If you want to manually create secret, do not forget to add proper label to it: "app.kubernetes.io/component: {{ .Values.controller.component }}".
       create: false
       # -- Generic key:value pairs to be inserted into the notifications secret
       items: {}
