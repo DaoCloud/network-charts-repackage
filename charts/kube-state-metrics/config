@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://prometheus-community.github.io/helm-charts
 export REPO_NAME=kube-state-metrics
 export CHART_NAME=kube-state-metrics
-export VERSION=4.22.*
+export VERSION=5.29.0
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
