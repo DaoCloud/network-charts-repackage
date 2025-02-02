@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://falcosecurity.github.io/charts
 export REPO_NAME=falcosecurity
 export CHART_NAME=event-generator
-export VERSION=0.1.1
+export VERSION=0.3.4
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
