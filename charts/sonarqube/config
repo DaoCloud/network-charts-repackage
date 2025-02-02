@@ -3,7 +3,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://SonarSource.github.io/helm-chart-sonarqube
 export REPO_NAME=sonarqube
 export CHART_NAME=sonarqube
-export VERSION=10.2.0
+export VERSION=2025.1.0
 # push to daocloud repo
 export DAOCLOUD_REPO_PROJECT=community
 export CUSTOM_SHELL=custom.sh
