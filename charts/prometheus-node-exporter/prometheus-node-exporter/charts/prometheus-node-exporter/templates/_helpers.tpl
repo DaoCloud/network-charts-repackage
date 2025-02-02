@@ -43,8 +43,8 @@ app.kubernetes.io/part-of: {{ include "prometheus-node-exporter.name" . }}
 {{- with .Chart.AppVersion }}
 app.kubernetes.io/version: {{ . | quote }}
 {{- end }}
-{{- with .Values.podLabels }}
-{{ toYaml . }}
+{{- with .Values.commonLabels }}
+{{ tpl (toYaml .) $ }}
 {{- end }}
 {{- if .Values.releaseLabel }}
 release: {{ .Release.Name }}
@@ -76,9 +76,19 @@ The image to use
 */}}
 {{- define "prometheus-node-exporter.image" -}}
 {{- if .Values.image.sha }}
-{{- printf "%s/%s:%s@%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.sha }}
+{{- fail "image.sha forbidden. Use image.digest instead" }}
+{{- else if .Values.image.digest }}
+{{- if .Values.global.imageRegistry }}
+{{- printf "%s/%s:%s@%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
 {{- else }}
-{{- printf "%s/%s:%s"  .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- printf "%s/%s:%s@%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
+{{- end }}
+{{- else }}
+{{- if .Values.global.imageRegistry }}
+{{- printf "%s/%s:%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- else }}
+{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -126,3 +136,102 @@ labelNameLengthLimit: {{ . }}
 labelValueLengthLimit: {{ . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Formats imagePullSecrets. Input is (dict "Values" .Values "imagePullSecrets" .{specific imagePullSecrets})
+*/}}
+{{- define "prometheus-node-exporter.imagePullSecrets" -}}
+{{- range (concat .Values.global.imagePullSecrets .imagePullSecrets) }}
+  {{- if eq (typeOf .) "map[string]interface {}" }}
+- {{ toYaml . | trim }}
+  {{- else }}
+- name: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Create the namespace name of the pod monitor
+*/}}
+{{- define "prometheus-node-exporter.podmonitor-namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- if .Values.prometheus.podMonitor.namespace }}
+{{- .Values.prometheus.podMonitor.namespace }}
+{{- else }}
+{{- .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Sets default scrape limits for podmonitor */}}
+{{- define "podmonitor.scrapeLimits" -}}
+{{- with .sampleLimit }}
+sampleLimit: {{ . }}
+{{- end }}
+{{- with .targetLimit }}
+targetLimit: {{ . }}
+{{- end }}
+{{- with .labelLimit }}
+labelLimit: {{ . }}
+{{- end }}
+{{- with .labelNameLengthLimit }}
+labelNameLengthLimit: {{ . }}
+{{- end }}
+{{- with .labelValueLengthLimit }}
+labelValueLengthLimit: {{ . }}
+{{- end }}
+{{- end }}
+
+{{/* Sets sidecar volumeMounts */}}
+{{- define "prometheus-node-exporter.sidecarVolumeMounts" -}}
+{{- range $_, $mount := $.Values.sidecarVolumeMount }}
+- name: {{ $mount.name }}
+  mountPath: {{ $mount.mountPath }}
+  readOnly: {{ $mount.readOnly }}
+{{- end }}
+{{- range $_, $mount := $.Values.sidecarHostVolumeMounts }}
+- name: {{ $mount.name }}
+  mountPath: {{ $mount.mountPath }}
+  readOnly: {{ $mount.readOnly }}
+{{- if $mount.mountPropagation }}
+  mountPropagation: {{ $mount.mountPropagation }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+The default node affinity to exclude 
+- AWS Fargate 
+- Azure virtual nodes
+*/}}
+{{- define "prometheus-node-exporter.defaultAffinity" -}}
+nodeAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: eks.amazonaws.com/compute-type
+        operator: NotIn
+        values:
+        - fargate
+      - key: type
+        operator: NotIn
+        values:
+        - virtual-kubelet
+{{- end -}}
+{{- define "prometheus-node-exporter.mergedAffinities" -}}
+{{- $defaultAffinity := include "prometheus-node-exporter.defaultAffinity" . | fromYaml -}}
+{{- with .Values.affinity -}}
+  {{- if .nodeAffinity -}}
+    {{- $_ := set $defaultAffinity "nodeAffinity" (mergeOverwrite $defaultAffinity.nodeAffinity .nodeAffinity) -}}
+  {{- end -}}
+  {{- if .podAffinity -}}
+    {{- $_ := set $defaultAffinity "podAffinity" .podAffinity -}}
+  {{- end -}}
+  {{- if .podAntiAffinity -}}
+    {{- $_ := set $defaultAffinity "podAntiAffinity" .podAntiAffinity -}}
+  {{- end -}}
+{{- end -}}
+{{- toYaml $defaultAffinity -}}
+{{- end -}}
