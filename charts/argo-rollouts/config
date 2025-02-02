@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://argoproj.github.io/argo-helm
 export REPO_NAME=argo-rollouts
 export CHART_NAME=argo-rollouts
-export VERSION=2.37.6
+export VERSION=2.39.0
 
 # pr, issue, none
 export UPGRADE_METHOD=pr
