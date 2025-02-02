@@ -49,6 +49,9 @@
   - [MinIO(S3) Storage](#minios3-storage)
     - [Using Built-in Minio Storage](#using-built-in-minio-storage)
     - [Using External S3 Storage](#using-external-s3-storage)
+- [Service Monitoring](#service-monitoring)
+  - [Installing Prometheus Operator](#installing-prometheus-operator)
+  - [Configuration](#configuration)
 
 
 ## Install
@@ -82,7 +85,7 @@ By default `values.yaml` uses ClusterIP mode, you can visit monkeys web ui throu
 kubectl get pods 
 
 # Port Forward monkey-core-proxy-xxxx-xxxx Pod, in this example use local machine's 8080 port.
-kubectl port-forward --address 0.0.0.0 monkey-core-proxy-xxxx-xxxx 8080:80 -n monkeys
+kubectl port-forward --address 0.0.0.0 monkeys-core-proxy-xxxx-xxxx 8080:80 -n monkeys
 
 # Try
 curl http://localhost:8080
@@ -132,7 +135,7 @@ helm uninstall monkeys -n monkeys
 | `images.web.pullPolicy`        | Image pull policy                                                       | `IfNotPresent`             |
 | `images.web.pullSecrets`       | Image pull secrets                                                      | `""`                       |
 | `images.conductor.registry`    | Docker Registry                                                         | `docker.io`                |
-| `images.conductor.repository`  | [conductor](https://github.com/inf-monkeys/conductor) engine image      | `infmonkeys/conductor`     |
+| `images.conductor.repository`  | [conductor](https://github.com/inf-monkeys/conductor) engine image      | `infmonkeys/conductor-oss` |
 | `images.conductor.tag`         | Version                                                                 | `latest`                   |
 | `images.conductor.pullPolicy`  | Image pull policy                                                       | `IfNotPresent`             |
 | `images.conductor.pullSecrets` | Image pull secrets                                                      | `""`                       |
@@ -213,35 +216,35 @@ Currently, the following three user authentication methods are supported:
 - `phone`: Phone number verification code authentication;
 - `oidc`: OIDC Single Sign-On;
 
-| Parameter                | Description                                                                 | Default Value |
-| ------------------------ | --------------------------------------------------------------------------- | ------------- |
-| `server.auth.enabled`    | Enabled authentication methods, default is password login only. Options are `password`, `oidc`, `phone` | `password`    |
+| Parameter             | Description                                                                                             | Default Value |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | ------------- |
+| `server.auth.enabled` | Enabled authentication methods, default is password login only. Options are `password`, `oidc`, `phone` | `password`    |
 
 ### OIDC Single Sign-On
 
-| Parameter                                       | Description                                                                                                      | Default Value    |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Parameter                                       | Description                                                                                                                                                                    | Default Value    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
 | `server.auth.oidc.auto_signin`                  | Whether to automatically use OIDC for login when the user signs in. If set to `false`, users need to manually click the OIDC login button to proceed with OIDC authentication. | `false`          |
-| `server.auth.oidc.issuer`                       | OIDC Issuer address, e.g., `https://console.d.run/auth/realms/ghippo`                                             | `""`             |
-| `server.auth.oidc.client_id`                    | OIDC Client ID                                                                                                    | `""`             |
-| `server.auth.oidc.client_secret`                | OIDC Client Secret                                                                                                | `""`             |
-| `server.auth.oidc.scope`                        | Scope set during OIDC authorization. For Daocloud DEC, set to `openid profile email phone`                        | `openid profile` |
-| `server.auth.oidc.button_text`                  | Text for the OIDC login button                                                                                    | `Use OIDC Login` |
-| `server.auth.oidc.id_token_signed_response_alg` | OIDC ID Token encryption method                                                                                   | `RS256`          |
+| `server.auth.oidc.issuer`                       | OIDC Issuer address, e.g., `https://console.d.run/auth/realms/ghippo`                                                                                                          | `""`             |
+| `server.auth.oidc.client_id`                    | OIDC Client ID                                                                                                                                                                 | `""`             |
+| `server.auth.oidc.client_secret`                | OIDC Client Secret                                                                                                                                                             | `""`             |
+| `server.auth.oidc.scope`                        | Scope set during OIDC authorization. For Daocloud DEC, set to `openid profile email phone`                                                                                     | `openid profile` |
+| `server.auth.oidc.button_text`                  | Text for the OIDC login button                                                                                                                                                 | `Use OIDC Login` |
+| `server.auth.oidc.id_token_signed_response_alg` | OIDC ID Token encryption method                                                                                                                                                | `RS256`          |
 
 ### Phone Number Verification Code Login
 
-| Parameter                             | Description                                                 | Default Value |
-| ------------------------------------- | ----------------------------------------------------------- | ------------- |
-| `server.auth.sms.provider`            | SMS verification code service provider, currently only supports Aliyun SMS. Options are `dysms`. | `dysms`      |
-| `server.auth.sms.config.accessKeyId`  | Aliyun accessKeyId                                          | `""`         |
-| `server.auth.sms.config.accessKeySecret` | Aliyun accessKeySecret                                      | `""`         |
-| `server.auth.sms.config.signName`     | SMS signature name                                          | `""`         |
-| `server.auth.sms.config.templateCode` | SMS template code                                           | `""`         |
+| Parameter                                | Description                                                                                      | Default Value |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------- |
+| `server.auth.sms.provider`               | SMS verification code service provider, currently only supports Aliyun SMS. Options are `dysms`. | `dysms`       |
+| `server.auth.sms.config.accessKeyId`     | Aliyun accessKeyId                                                                               | `""`          |
+| `server.auth.sms.config.accessKeySecret` | Aliyun accessKeySecret                                                                           | `""`          |
+| `server.auth.sms.config.signName`        | SMS signature name                                                                               | `""`          |
+| `server.auth.sms.config.templateCode`    | SMS template code                                                                                | `""`          |
 
 ## Built-IN LLM Models
 
-You can configure the built-in large language model, which can be used by all teams within the system.​⬤
+You can configure the built-in large language model, which can be used by all teams within the system.​
 
 | Parameter   | Description                                                                                                            | Default Value |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------- | ------------- |
@@ -250,19 +253,19 @@ You can configure the built-in large language model, which can be used by all te
 
 You can add any OpenAI-compatible LLMmodels with the following configuration:
 
-| Parameter                 | Description                                                                                                                             | Default Value |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| `model`                   | Model name, e.g., `gpt-3.5-turbo`                                                                                                       |               |
-| `baseURL`                 | Access URL, e.g., `https://api.openai.com/v1`                                                                                           |               |
-| `apiKey`                  | API Key, optional                                                                                                                       |               |
-| `type`                    | Model type, `chat_completions` or `completions`, for chat or text completion models. Leave empty to support both.                       | `""`          |
-| `autoMergeSystemMessages` | Automatically merge multiple System Messages. Required for VLLM models that cannot handle multiple system messages for the same `role`. | `false`       |
-| `defaultParams`           | Default request parameters, e.g., `top` parameters for specific models like `Qwen/Qwen-7B-Chat-Int4`.                                   |               |
+| Parameter                      | Description                                                                                                                                                                                                                                                                                                                                                                                           | Default Value |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `model`                        | Model name, e.g., `gpt-3.5-turbo`                                                                                                                                                                                                                                                                                                                                                                     |               |
+| `baseURL`                      | Access URL, e.g., `https://api.openai.com/v1`                                                                                                                                                                                                                                                                                                                                                         |               |
+| `apiKey`                       | API Key, optional                                                                                                                                                                                                                                                                                                                                                                                     |               |
+| `type`                         | Model type, `chat_completions` or `completions`, for chat or text completion models. Leave empty to support both.                                                                                                                                                                                                                                                                                     | `""`          |
+| `autoMergeConsecutiveMessages` | Should messages with the same role be automatically merged? When using a model deployed through VLLM, multiple consecutive messages with the same `role` cannot be transmitted. If there are multiple consecutive messages with the same role, they need to be automatically merged into a single message. If set to `true`, the messages will be automatically merged into one, separated by `\n\n`. | `false`       |
+| `defaultParams`                | Default request parameters, e.g., `top` parameters for specific models like `Qwen/Qwen-7B-Chat-Int4`.                                                                                                                                                                                                                                                                                                 |               |
 
 Here are an example: 
 
 ```yaml
-models:
+llmModels:
   - model: gpt-3.5-turbo
     baseURL: https://api.openai.com/v1
     apiKey: xxxxxxxxxxxxxx
@@ -276,7 +279,7 @@ models:
   - model: Qwen/Qwen-7B-Chat-Int4
     baseURL: http://127.0.0.1:8000/v1
     apiKey: token-abc123
-    autoMergeSystemMessages: true
+    autoMergeConsecutiveMessages: true
     defaultParams:
       stop:
         - <|im_start|>
@@ -552,15 +555,72 @@ After startup, you should be able to access the Minio management console at the 
 
 #### Using External S3 Storage
 
-| Parameter                    | Description                                                                                          | Default Value |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------- |
-| `externalS3.enabled`         | Use external S3-compatible storage such as Minio, AWS S3, etc.                                       | `false`       |
-| `externalS3.isPrivate`       | Is it a private repository                                                                           | `false`       |
-| `externalS3.forcePathStyle`  | Use path-style endpoint, typically set to `true` when using Minio                                    | `false`       |
-| `externalS3.endpoint`        | Endpoint URL                                                                                         | `""`          |
-| `externalS3.accessKeyId`     | Access Key ID                                                                                        | `""`          |
-| `externalS3.secretAccessKey` | Secret Access Key                                                                                    | `""`          |
-| `externalS3.region`          | Region                                                                                               | `""`          |
-| `externalS3.bucket`          | Bucket name, use a public bucket to allow frontend access                                            | `""`          |
-| `externalS3.publicAccessUrl` | Publicly accessible URL, typically the CDN URL for the bucket, e.g., `https://static.infmonkeys.com` | `31900`       |
 
+| Parameter                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Default |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `externalS3.enabled`         | Use an external object storage that supports the S3 protocol, such as Minio, AWS S3, etc.                                                                                                                                                                                                                                                                                                                                                                                                                       | `false` |
+| `externalS3.proxy`           | Use the Server as an intermediary proxy for uploads. In some cases, your S3 service (such as MinIO) may not be directly accessible from the outside.                                                                                                                                                                                                                                                                                                                                                            | `true`  |
+| `externalS3.isPrivate`       | Whether it is a private repository.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `false` |
+| `externalS3.forcePathStyle`  | Use path-style endpoint. When using Minio, this usually needs to be set to `true`.                                                                                                                                                                                                                                                                                                                                                                                                                              | `false` |
+| `externalS3.accessKeyId`     | AccessKeyID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `""`    |
+| `externalS3.secretAccessKey` | Secret Access Key                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `""`    |
+| `externalS3.region`          | Region                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `""`    |
+| `externalS3.bucket`          | Bucket name. Please use a public bucket so that it can be accessed by the front end.                                                                                                                                                                                                                                                                                                                                                                                                                            | `""`    |
+| `externalS3.endpoint`        | S3 service endpoint address. If `proxy` is `true`, the S3 will be accessed within the `server` service using this internal address; if `proxy` is `false`, this address must be accessible from the browser. Example: If you are using `minio`, the `api` port should be specified, not the `console` port; if using a cloud provider's S3 service, specify the corresponding `endpoint` address, such as `https://tos-s3-cn-beijing.volces.com`.                                                               | `""`    |
+| `externalS3.publicAccessUrl` | Note: `publicAccessUrl` and `endpoint` are different addresses. This address will be used as the prefix of the URL obtained after uploading, and must be accessible by the browser, otherwise, the uploaded files will not be displayed correctly. If you are using an S3 service provided by a cloud provider such as AWS, Alibaba Cloud, Volcano Engine, and have configured a CDN acceleration address for the bucket, you can set this address to the CDN address, such as `https://static.infmonkeys.com`. | `""`    |
+
+
+## Service Monitoring
+
+For detailed Prometheus metrics exposed by the Monkeys service, please refer to [https://inf-monkeys.github.io/docs/en-us/cluster/monitoring/prometheus-grafana/](https://inf-monkeys.github.io/docs/en-us/cluster/monitoring/prometheus-grafana/).
+
+### Installing Prometheus Operator
+
+If you haven't installed Prometheus Operator yet, you can install it using the following commands, setting the namespace to `monitoring`:
+
+```sh
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+kubectl create namespace monitoring
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring
+```
+
+Check the installation status:
+
+```sh
+kubectl get all -n monitoring
+```
+
+### Configuration
+
+| Parameter         | Description              | Default |
+| ----------------- | ------------------------ | ------- |
+| `serviceMonitors` | Enabled service monitors | `[]`    |
+
+As the deployment environment may not have Prometheus Operator installed by default, `serviceMonitors` is initially set to an empty array. Once Prometheus Operator is installed, you can configure `serviceMonitors` as follows:
+
+- `namespace`: Modify it to the namespace where your Prometheus Operator is deployed.
+
+```yaml
+serviceMonitors:
+  - name: monkeys-core-server
+    namespace: monitoring
+    selector:
+      matchLabels:
+        monkeys/app: server
+    endpoints:
+      - port: http-server
+        interval: 5s
+        path: /metrics
+  - name: monkeys-core-conductor
+    namespace: monitoring
+    selector:
+      matchLabels:
+        monkeys/app: conductor
+    endpoints:
+      - port: http-conductor
+        interval: 1s
+        path: /actuator/prometheus
+```
+
+If you deploy a `vllm` service in the **current namespace**, you can add a new `serviceMonitor` similarly, though Monkeys' Helm charts do not provide this by default.

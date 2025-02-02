@@ -28,4 +28,4 @@ dependencies:
 description: A Helm chart for Monkeys core service.
 name: core
 type: application
-version: 0.1.11
+version: 0.1.20

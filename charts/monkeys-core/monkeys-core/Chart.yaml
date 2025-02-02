@@ -2,12 +2,12 @@ apiVersion: v2
 appVersion: 1.16.0
 dependencies:
   - name: core
-    version: v0.1.11
+    version: 0.1.20
     repository: https://inf-monkeys.github.io/helm-charts
 description: A Helm chart for Monkeys core service.
 name: monkeys-core
 type: application
-version: 0.1.11
+version: 0.1.20
 maintainers:
   - name: inf-monkeys
     url: https://github.com/inf-monkeys/helm-charts
