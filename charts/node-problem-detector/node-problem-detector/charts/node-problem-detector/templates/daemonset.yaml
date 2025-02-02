@@ -50,7 +50,11 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- if .Values.image.digest }}
+          image:  "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          {{- else }}
           image:  "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" | quote }}
           command:
             - "/bin/sh"
@@ -108,10 +112,11 @@ spec:
         - name: localtime
           hostPath:
             path: /etc/localtime
-            type: "FileOrCreate"
+            type: {{ default "FileOrCreate" .Values.volume.localtime.type }}
         - name: custom-config
           configMap:
             name: {{ include "node-problem-detector.customConfig" . }}
+            defaultMode: 493
       {{- if .Values.extraVolumes }}
       {{- toYaml .Values.extraVolumes | nindent 8 }}
       {{- end }}
