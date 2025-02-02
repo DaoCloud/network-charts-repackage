@@ -42,7 +42,7 @@ vela-core:
   ## @param image.pullPolicy Image pull policy
   image:
     repository: oamdev/vela-core
-    tag: v1.9.11
+    tag: v1.9.13
     pullPolicy: Always
     registry: docker.m.daocloud.io
   ## @param resources.limits.cpu KubeVela controller's cpu limit
@@ -269,4 +269,4 @@ vela-core:
   global:
     imageRegistry: docker.m.daocloud.io
     repository: oamdev/vela-core
-    tag: v1.9.11
+    tag: v1.9.13
