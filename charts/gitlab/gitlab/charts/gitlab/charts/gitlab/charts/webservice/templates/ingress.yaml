@@ -17,10 +17,7 @@ From here on:
 {{-         $hostname = $.Values.extraIngress.hostname | default $hostname -}}
 {{-         $_ := set $ingressCfg "local" .extraIngress -}}
 {{-         $ingressName = printf "%s-extra" $ingressName -}}
-{{-         $tlsSecret = include "webservice.tlsSecret" (dict "root" $ "local" $.Values.extraIngress) -}}
-{{-         if $tlsSecret }}
-{{-           $tlsSecret = printf "%s-extra" $tlsSecret }}
-{{-         end }}
+{{-         $tlsSecret = include "webservice.tlsSecret" (dict "root" $ "local" $.Values.extraIngress "certmanagerPostfix" "-extra") -}}
 {{-         include "webservice.ingress.template" (dict "root" $ "deployment" . "ingressCfg" $ingressCfg "host" $hostname "name" $ingressName "tlsSecret" $tlsSecret) }}
 {{-       end }}
 {{-     end -}}{{/* RANGE DEPLOYMENTS */}}

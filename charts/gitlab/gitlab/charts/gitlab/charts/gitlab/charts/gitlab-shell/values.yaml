@@ -15,6 +15,7 @@ service:
   internalPort: 2222
   externalTrafficPolicy: Cluster
   # nodePort: xxx
+  # allocateLoadBalancerNodePorts: true
   # loadBalancerIP: x.x.x.x
   # loadBalancerSourceRanges:
   # - x.x.x.x/yy
@@ -28,7 +29,11 @@ init:
   resources:
     requests:
       cpu: 50m
-  containerSecurityContext: {}
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
 # Tolerations for pod scheduling
 tolerations: []
 # Priority class assigned to pods
@@ -60,6 +65,11 @@ resources:
 maxUnavailable: 1
 minReplicas: 2
 maxReplicas: 10
+# When using traefik ingress
+traefik:
+  entrypoint: gitlab-shell
+  apiVersion: ""
+  tcpMiddlewares: []
 hpa:
   # targetAverageValue: 100m  # DEPRECATED: in favor of `hpa.cpu.targetAverageValue` below
   cpu:
@@ -121,6 +131,7 @@ config:
   ciphers: [aes128-gcm@openssh.com, chacha20-poly1305@openssh.com, aes256-gcm@openssh.com, aes128-ctr, aes192-ctr, aes256-ctr]
   kexAlgorithms: [curve25519-sha256, curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group14-sha256, diffie-hellman-group14-sha1]
   macs: [hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha2-256, hmac-sha2-512, hmac-sha1]
+  publicKeyAlgorithms: []
   gssapi:
     enabled: false
     libpath: "libgssapi_krb5.so.2"
@@ -129,19 +140,32 @@ config:
       key: keytab
     krb5Config: ""
     servicePrincipalName: ""
+  lfs:
+    pureSSHProtocol: false
+  pat:
+    enabled: true
+    allowedScopes: []
 ## Allow to overwrite under which User and Group the Pod will be running.
 securityContext:
   runAsUser: 1000
   fsGroup: 1000
   # fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: "RuntimeDefault"
 ## Allow to overwrite the specific security context under which the gitaly container is running.
 containerSecurityContext:
   runAsUser: 1000
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
 ## Enable deployment to use a serviceAccount
 serviceAccount:
   enabled: false
   create: false
   annotations: {}
+  ## Used for local override of global ServiceAccount token mounting
+  # automountServiceAccountToken: false
   ## Name to be used for serviceAccount, otherwise defaults to chart fullname
   # name:
 metrics:
@@ -169,3 +193,6 @@ sshDaemon: openssh
 affinity:
   podAntiAffinity:
     topologyKey:
+  nodeAffinity:
+    key:
+    values:

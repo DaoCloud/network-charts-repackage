@@ -109,34 +109,7 @@ Constructs selfsign image value.
 {{- end -}}
 
 {{/*
-DEPRECATED: Constructs busybox image name.
-*/}}
-{{- define "gitlab.busybox.image" -}}
-{{/*
-    # Earlier, init.image and init.tag were used to configure initContainer
-    # image details. We deprecated them in favor of init.image.repository and
-    # init.image.tag. However, deprecation checking happens after template
-    # rendering is done. So, we have to handle the case of `init.image` being a
-    # string to avoid the process being broken at rendering stage itself. It
-    # doesn't matter what we print there because once rendering is done
-    # deprecation check will kick-in and abort the process. That value will not
-    # be used.
-    # TODO: consider tagSuffix here, since we took it out of example
-*/}}
-{{- if kindIs "map" .image }}
-{{- $image := coalesce .image.repository .global.busybox.image.repository "registry.gitlab.com/gitlab-org/cloud-native/mirror/images/busybox" }}
-{{- $tag := coalesce .image.tag .global.busybox.image.tag "latest" }}
-{{- printf "%s:%s" $image $tag -}}
-{{- else }}
-{{- printf "DEPRECATED:DEPRECATED" -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Constructs the image value used for the configure container.
-
-Defaults to GitLab Base image and falls back to the deprecated busybox image,
-when custom global busybox values are defined.
+Constructs the GitLab base image used for the configure container.
 
 It expects a dictionary with two entries:
   - `root` which contains the root context
@@ -146,28 +119,15 @@ Format:
   {{ include "gitlab.configure.image" (dict "root" $ "image" "<override image context>") }}
 */}}
 {{- define "gitlab.configure.image" -}}
-{{/* Fall back to deprecated busybox */}}
-{{- if hasKey .root.Values.global "busybox" }}
-{{-   include "gitlab.busybox.image" (dict "global" .root.Values.global "image" .image) -}}
-{{- else }}
-{{-   $image := mergeOverwrite (deepCopy .root.Values.global.gitlabBase.image) .image }}
-{{-   include "gitlab.helper.image" (dict "context" .root "image" $image) -}}
-{{- end }}
+{{- $image := mergeOverwrite (deepCopy .root.Values.global.gitlabBase.image) .image }}
+{{- include "gitlab.helper.image" (dict "context" .root "image" $image) -}}
 {{- end -}}
 
 {{/*
 Constructs the image configuration for the `configure` container.
-
-Defaults to the GitLab Base values and falls back to the deprecated busybox values,
-when custom global busybox values are defined.
 */}}
 {{- define "gitlab.configure.config" -}}
-{{- $global := .global.gitlabBase.image }}
-{{/* Fall back to deprecated busybox */}}
-{{- if hasKey .global "busybox" }}
-{{-   $global := .global.busybox.image }}
-{{- end }}
-{{- dict "global" $global "local" .init.image | toYaml }}
+{{- dict "global" .global.gitlabBase.image "local" .init.image | toYaml }}
 {{- end -}}
 
 {{/*

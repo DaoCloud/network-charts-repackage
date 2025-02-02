@@ -26,7 +26,7 @@ Registry: Notifications should be defined in the global scope. Use `global.regis
 Ensure Registry database is configured properly and dependencies are met
 */}}
 {{- define "gitlab.checkConfig.registry.database" -}}
-{{-   if $.Values.registry.database.enabled }}
+{{-   if not (quote $.Values.registry.database.sslmode | empty)  }}
 {{-     $validSSLModes := list "require" "disable" "allow" "prefer" "require" "verify-ca" "verify-full" -}}
 {{-     if not (has $.Values.registry.database.sslmode $validSSLModes) }}
 registry:
@@ -41,16 +41,34 @@ registry:
     PostgreSQL 13 is the minimum required version for the registry database.
     See https://docs.gitlab.com/charts/charts/registry#database
 {{-     end -}}
-{{-     if and ($.Values.registry.database.discovery.enabled) }}
-{{-       if or (not (kindIs "string" $.Values.registry.database.discovery.nameserver)) (empty $.Values.registry.database.discovery.nameserver) }}
-registry:
-    Enabling database discovery requires a nameserver to be provided.
-    See https://docs.gitlab.com/charts/charts/registry#database.
-{{-       end -}}
-{{-     end -}}
 {{-   end -}}
 {{- end -}}
 {{/* END gitlab.checkConfig.registry.database */}}
+
+{{/*
+Ensure Registry database load balancing is configured properly and dependencies are met
+*/}}
+{{- define "gitlab.checkConfig.registry.database.loadBalancing" -}}
+{{- if $.Values.registry.database.loadBalancing.enabled }}
+  {{- if not $.Values.registry.database.enabled }}
+registry:
+    Enabling database load balancing requires the metadata database to be enabled.
+    See https://docs.gitlab.com/charts/charts/registry#load-balancing
+  {{- end }}
+  {{- if not $.Values.registry.redis.cache.enabled }}
+registry:
+    Enabling database load balancing requires Redis caching to be enabled.
+    See https://docs.gitlab.com/charts/charts/registry/#redis-cache
+  {{- end }}
+  {{- if and (kindIs "string" $.Values.registry.database.loadBalancing.record) (empty $.Values.registry.database.loadBalancing.record) }}
+registry:
+    Enabling database load balancing requires the record to not be empty.
+    See https://docs.gitlab.com/charts/charts/registry#load-balancing
+  {{- end }}
+{{- end -}}
+
+{{- end -}}
+{{/* END gitlab.checkConfig.registry.database.loadBalancing */}}
 
 {{/*
 Ensure Registry Redis cache is configured properly and dependencies are met
@@ -89,6 +107,39 @@ registry:
 {{- end -}}
 {{- end -}}
 {{/* END gitlab.checkConfig.registry.redis.cache */}}
+
+{{/*
+Ensure Registry Redis rate-limiter is configured properly and dependencies are met
+*/}}
+{{- define "gitlab.checkConfig.registry.redis.rateLimiting" -}}
+{{-   if $.Values.registry.redis.rateLimiting.enabled }}
+{{-     if  and (kindIs "string" $.Values.registry.redis.rateLimiting.host) (empty $.Values.registry.redis.rateLimiting.host) }}
+registry:
+    Enabling the Redis rate-limiter requires the host to not be empty.
+    See https://docs.gitlab.com/charts/charts/registry#redis-rate-limiter
+{{-     end -}}
+{{- end -}}
+{{-   if and $.Values.registry.redis.rateLimiting.enabled $.Values.registry.redis.rateLimiting.sentinels}}
+{{-     if  and (kindIs "string" $.Values.registry.redis.rateLimiting.host) (empty $.Values.registry.redis.rateLimiting.host) }}
+registry:
+    Enabling the Redis rate-limiter with sentinels requires the registry.redis.rateLimiting.host to be set.
+    See https://docs.gitlab.com/charts/charts/registry#redis-rate-limiter
+{{-     end -}}
+{{- end -}}
+{{-   if and $.Values.registry.redis.rateLimiting.enabled $.Values.registry.redis.rateLimiting.password.enabled }}
+{{-     if and (kindIs "string" $.Values.registry.redis.rateLimiting.password.secret) (empty $.Values.registry.redis.rateLimiting.password.secret) }}
+registry:
+    Enabling the Redis rate-limiter password requires 'registry.redis.rateLimiting.password.secret' to be set.
+    See https://docs.gitlab.com/charts/charts/registry#redis-rate-limiter
+{{-     end -}}
+{{-     if and (kindIs "string" $.Values.registry.redis.rateLimiting.password.key) (empty $.Values.registry.redis.rateLimiting.password.key) }}
+registry:
+    Enabling the Redis rate-limiter password requires 'registry.redis.rateLimiting.password.key' to be set.
+    See https://docs.gitlab.com/charts/charts/registry#redis-cache
+{{-     end -}}
+{{- end -}}
+{{- end -}}
+{{/* END gitlab.checkConfig.registry.redis.rateLimiting */}}
 
 {{/*
 Ensure Registry TLS has a secret when enabled

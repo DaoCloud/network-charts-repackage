@@ -106,7 +106,7 @@ spec:
       {{- if or $.Values.serviceAccount.enabled $.Values.global.serviceAccount.enabled }}
       serviceAccountName: {{ include "gitlab.serviceAccount.name" $ }}
       {{- end }}
-      automountServiceAccountToken: false
+      {{- include "gitlab.automountServiceAccountToken" $ | nindent 6 }}
       terminationGracePeriodSeconds: {{ int (default $.Values.deployment.terminationGracePeriodSeconds .terminationGracePeriodSeconds) }}
       initContainers:
         {{- include "gitlab.extraInitContainers" $ | nindent 8 }}
@@ -117,6 +117,7 @@ spec:
           {{- include "gitlab.image.pullPolicy" $initImageCfg | indent 10 }}
           {{- include "gitlab.init.containerSecurityContext" $ | indent 10 }}
           env:
+          {{- include "gitlab.timeZone.env" $ | nindent 10 }}
           {{- include "gitlab.extraEnv" $ | nindent 10 }}
           {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 10 }}
           volumeMounts:
@@ -157,7 +158,8 @@ spec:
               value: "1"
             {{- end }}
             {{- include "gitlab.extraEnv" $ | nindent 12 }}
-            {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" (dict)) | nindent 12 }}
+            {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 12 }}
+            {{- include "gitlab.timeZone.env" $ | nindent 12 }}
           volumeMounts:
           {{- tpl (default "" .extraVolumeMounts) $ | nindent 10 }}
           {{- include "gitlab.extraVolumeMounts" $ | nindent 10 }}
@@ -192,16 +194,12 @@ spec:
               value: '/var/opt/gitlab/templates'
             - name: CONFIG_DIRECTORY
               value: '/srv/gitlab/config'
-            - name: SIDEKIQ_QUEUE_SELECTOR
-              value: {{ include "gitlab.boolean.local" (dict "global" $.Values.queueSelector "local" .queueSelector "default" false) | quote }}
             - name: SIDEKIQ_CONCURRENCY
               value: {{ default $concurrency .concurrency | quote }}
             - name: SIDEKIQ_TIMEOUT
               value: {{ default $timeout .timeout | quote }}
             - name: SIDEKIQ_QUEUES
               value: {{ default $.Values.queues .queues | quote | nospace }}
-            - name: SIDEKIQ_NEGATE_QUEUES
-              value: {{ default $.Values.negateQueues .negateQueues | quote | nospace }}
             - name: SIDEKIQ_DAEMON_MEMORY_KILLER
               value: {{ int $.Values.memoryKiller.daemonMode | quote }}
             {{- with default $.Values.memoryKiller .memoryKiller }}
@@ -225,6 +223,7 @@ spec:
             {{- include "gitlab.tracing.env" $ | nindent 12 }}
             {{- include "sidekiq.podExtraEnv" (dict "local" . "context" $) | nindent 12 }}
             {{- include "gitlab.extraEnvFrom" (dict "root" $ "local" .) | nindent 12 }}
+            {{- include "gitlab.timeZone.env" $ | nindent 12 }}
         {{- if $metricsEnabled }}
           ports:
           - containerPort: {{ $metricsPort }}
@@ -325,6 +324,7 @@ spec:
             {{- include "gitlab.clickhouse.main.secrets" $ | nindent 10 }}
           {{- end }}
           {{- include "gitlab.redis.secrets" (dict "globalContext" $) | nindent 10 }}
+          {{- include "gitlab.redisSentinel.secret" $ | nindent 10 }}
           {{- range $.Values.local.psql }}
           {{-   include "gitlab.psql.secret" . | nindent 10 }}
           {{- end }}

@@ -21,6 +21,7 @@ pages:
   local_store:
     enabled: {{ $.Values.global.pages.localStore.enabled }}
     path: {{ $.Values.global.pages.localStore.path }}
+  namespace_in_path: {{ $.Values.global.pages.namespaceInPath }}
 {{- end -}}
 
 {{- define "gitlab.pages.mountSecrets" }}
