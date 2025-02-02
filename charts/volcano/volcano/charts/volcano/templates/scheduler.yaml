@@ -3,24 +3,42 @@
 {{ $scheduler_tolerations := or .Values.custom.scheduler_tolerations .Values.custom.default_tolerations }}
 {{ $scheduler_sc := or .Values.custom.scheduler_sc .Values.custom.default_sc }}
 {{ $scheduler_ns := or .Values.custom.scheduler_ns .Values.custom.default_ns }}
+{{ $scheduler_name := .Values.custom.scheduler_name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-scheduler-configmap
   namespace: {{ .Release.Namespace }}
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 data:
+  {{- if .Values.custom.scheduler_config_override }}
+  volcano-scheduler.conf: |
+    {{- .Values.custom.scheduler_config_override | nindent 4 }}
+  {{- else }}
   {{- (.Files.Glob .Values.basic.scheduler_config_file).AsConfig | nindent 2}}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Release.Name }}-scheduler
   namespace: {{ .Release.Namespace }}
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ .Release.Name }}-scheduler
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -35,8 +53,11 @@ rules:
     resources: ["events"]
     verbs: ["create", "list", "watch", "update", "patch"]
   - apiGroups: [""]
-    resources: ["pods", "pods/status"]
-    verbs: ["create", "get", "list", "watch", "update", "patch", "bind", "updateStatus", "delete"]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["update"]
   - apiGroups: [""]
     resources: ["pods/binding"]
     verbs: ["create"]
@@ -66,7 +87,7 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["scheduling.incubator.k8s.io", "scheduling.volcano.sh"]
     resources: ["queues"]
-    verbs: ["get", "list", "watch", "create", "delete"]
+    verbs: ["get", "list", "watch", "create", "delete", "update"]
   - apiGroups: ["scheduling.incubator.k8s.io", "scheduling.volcano.sh"]
     resources: ["queues/status"]
     verbs: ["update"]
@@ -90,6 +111,10 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ .Release.Name }}-scheduler-role
+  {{- if .Values.custom.common_labels }}
+  labels:
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+  {{- end }}
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-scheduler
@@ -107,8 +132,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: volcano-scheduler
-    {{- if .Values.custom.scheduler_labels }}
-    {{- toYaml .Values.custom.scheduler_labels | nindent 4 }}
+    {{- if or (.Values.custom.scheduler_labels) (.Values.custom.common_labels) }}
+    {{- mustMerge (.Values.custom.scheduler_labels | default (dict)) (.Values.custom.common_labels | default (dict)) | toYaml | nindent 4 }}
     {{- end }}
 spec:
   replicas: {{ .Values.custom.scheduler_replicas }}
@@ -119,8 +144,8 @@ spec:
     metadata:
       labels:
         app: volcano-scheduler
-        {{- if .Values.custom.scheduler_podLabels }}
-        {{- toYaml .Values.custom.scheduler_podLabels | nindent 8 }}
+        {{- if or (.Values.custom.scheduler_podLabels) (.Values.custom.common_labels) }}
+        {{- mustMerge (.Values.custom.scheduler_podLabels | default (dict)) (.Values.custom.common_labels | default (dict)) | toYaml | nindent 8 }}
         {{- end }}
     spec:
       {{- if $scheduler_tolerations }}
@@ -145,7 +170,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Release.Name }}-scheduler
-          image: {{ .Values.scheduler.image.registry }}/{{ .Values.scheduler.image.repository }}:{{.Values.scheduler.image.tag }}
+          image: {{ .Values.basic.image_registry }}/{{ .Values.scheduler.image.registry }}/{{ .Values.scheduler.image.repository }}:{{.Values.scheduler.image.tag }}
           {{- if .Values.custom.scheduler_resources }}
           resources:
           {{- toYaml .Values.custom.scheduler_resources | nindent 12 }}
@@ -153,13 +178,30 @@ spec:
           args:
             - --logtostderr
             - --scheduler-conf=/volcano.scheduler/{{base .Values.basic.scheduler_config_file}}
+            {{- if $scheduler_name }}
+            - --scheduler-name={{- $scheduler_name }}
+            {{- end }}
             - --enable-healthz=true
+            {{- if .Values.custom.scheduler_metrics_enable }}
             - --enable-metrics=true
+            {{- end }}
             - --leader-elect={{ .Values.custom.leader_elect_enable }}
             {{- if .Values.custom.leader_elect_enable }}
-            - --lock-object-namespace={{ .Release.Namespace }}
+            - --leader-elect-resource-namespace={{ .Release.Namespace }}
             {{- end }}
-            - -v=3
+            {{- if .Values.custom.scheduler_kube_api_qps }}
+            - --kube-api-qps={{.Values.custom.scheduler_kube_api_qps}}
+            {{- end }}
+            {{- if .Values.custom.scheduler_kube_api_burst }}
+            - --kube-api-burst={{.Values.custom.scheduler_kube_api_burst}}
+            {{- end }}
+            {{- if .Values.custom.scheduler_schedule_period }}
+            - --schedule-period={{.Values.custom.scheduler_schedule_period}}
+            {{- end }}
+            {{- if .Values.custom.scheduler_node_worker_threads }}
+            - --node-worker-threads={{.Values.custom.scheduler_node_worker_threads}}
+            {{- end }}
+            - -v={{.Values.custom.scheduler_log_level}}
             - 2>&1
           env:
             - name: DEBUG_SOCKET_DIR
@@ -170,6 +212,10 @@ spec:
               mountPath: /volcano.scheduler
             - name: klog-sock
               mountPath: /tmp/klog-socks
+          {{- if .Values.custom.scheduler_default_csc }}
+          securityContext:
+            {{- toYaml .Values.custom.scheduler_default_csc | nindent 12 }}
+          {{- end }}
       volumes:
         - name: scheduler-config
           configMap:
@@ -189,7 +235,16 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: volcano-scheduler
+    {{- if .Values.custom.common_labels }}
+    {{- toYaml .Values.custom.common_labels | nindent 4 }}
+    {{- end }}
 spec:
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ toYaml .Values.service.ipFamilies | nindent 4 }}
+  {{- end }}
   ports:
   - port: 8080
     protocol: TCP
