@@ -4,15 +4,19 @@ kind: ServiceAccount
 metadata:
   name: {{ include "falcosidekick.fullname" . }}
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.config.aws.rolearn }}
+  {{- if and .Values.config.aws.useirsa .Values.config.aws.rolearn }}
+  labels:
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
+    {{- with .Values.customLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   annotations:
+    {{- with .Values.customAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     eks.amazonaws.com/role-arn: {{ .Values.config.aws.rolearn }}
   {{- end }}
-  labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -20,10 +24,15 @@ metadata:
   name: {{ include "falcosidekick.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
+    {{- with .Values.customLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- with .Values.customAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 rules:
 - apiGroups:
     - ""
@@ -48,10 +57,8 @@ metadata:
   name: {{ include "falcosidekick.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -65,12 +72,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "falcosidekick.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
 rules:
 - apiGroups:
     - "wgpolicyk8s.io"
@@ -87,12 +91,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "falcosidekick.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falcosidekick.name" . }}
-    helm.sh/chart: {{ include "falcosidekick.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falcosidekick.labels" . | nindent 4 }}
+    app.kubernetes.io/component: core
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
