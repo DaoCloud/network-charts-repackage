@@ -5,9 +5,29 @@
         "cni": {
             "type": "object",
             "properties": {
-                "cni": {
+                "_internal_defaults_do_not_set": {
                     "type": "object",
                     "properties": {
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "ambient": {
+                            "type": "object",
+                            "properties": {
+                                "configDir": {
+                                    "type": "string"
+                                },
+                                "dnsCapture": {
+                                    "type": "boolean"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "ipv6": {
+                                    "type": "boolean"
+                                }
+                            }
+                        },
                         "chained": {
                             "type": "boolean"
                         },
@@ -20,10 +40,63 @@
                         "cniConfFileName": {
                             "type": "string"
                         },
+                        "cniNetnsDir": {
+                            "type": "null"
+                        },
+                        "env": {
+                            "type": "object"
+                        },
                         "excludeNamespaces": {
                             "type": "array",
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "global": {
+                            "type": "object",
+                            "properties": {
+                                "defaultResources": {
+                                    "type": "object",
+                                    "properties": {
+                                        "requests": {
+                                            "type": "object",
+                                            "properties": {
+                                                "cpu": {
+                                                    "type": "string"
+                                                },
+                                                "memory": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "hub": {
+                                    "type": "string"
+                                },
+                                "imagePullPolicy": {
+                                    "type": "string"
+                                },
+                                "imagePullSecrets": {
+                                    "type": "array"
+                                },
+                                "logAsJson": {
+                                    "type": "boolean"
+                                },
+                                "logging": {
+                                    "type": "object",
+                                    "properties": {
+                                        "level": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "tag": {
+                                    "type": "string"
+                                },
+                                "variant": {
+                                    "type": "string"
+                                }
                             }
                         },
                         "hub": {
@@ -32,16 +105,21 @@
                         "image": {
                             "type": "string"
                         },
-                        "logLevel": {
+                        "logging": {
+                            "type": "object",
+                            "properties": {
+                                "level": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "ownerName": {
                             "type": "string"
                         },
                         "podAnnotations": {
                             "type": "object"
                         },
-                        "privileged": {
-                            "type": "boolean"
-                        },
-                        "psp_cluster_role": {
+                        "provider": {
                             "type": "string"
                         },
                         "pullPolicy": {
@@ -69,6 +147,9 @@
                                     "type": "string"
                                 },
                                 "labelPods": {
+                                    "type": "boolean"
+                                },
+                                "repairPods": {
                                     "type": "boolean"
                                 },
                                 "tag": {
@@ -103,77 +184,25 @@
                                 }
                             }
                         },
+                        "revision": {
+                            "type": "string"
+                        },
+                        "rollingMaxUnavailable": {
+                            "type": "integer"
+                        },
+                        "seLinuxOptions": {
+                            "type": "object"
+                        },
                         "seccompProfile": {
                             "type": "object"
                         },
                         "tag": {
                             "type": "string"
                         },
-                        "taint": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                }
-                            }
-                        },
                         "variant": {
                             "type": "string"
                         }
                     }
-                },
-                "global": {
-                    "type": "object",
-                    "properties": {
-                        "defaultResources": {
-                            "type": "object",
-                            "properties": {
-                                "requests": {
-                                    "type": "object",
-                                    "properties": {
-                                        "cpu": {
-                                            "type": "string"
-                                        },
-                                        "memory": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "hub": {
-                            "type": "string"
-                        },
-                        "imagePullPolicy": {
-                            "type": "string"
-                        },
-                        "imagePullSecrets": {
-                            "type": "array"
-                        },
-                        "logAsJson": {
-                            "type": "boolean"
-                        },
-                        "logging": {
-                            "type": "object",
-                            "properties": {
-                                "level": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "tag": {
-                            "type": "string"
-                        },
-                        "variant": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "ownerName": {
-                    "type": "string"
-                },
-                "revision": {
-                    "type": "string"
                 }
             }
         }
