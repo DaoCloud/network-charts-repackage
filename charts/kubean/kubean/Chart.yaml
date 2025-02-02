@@ -1,13 +1,13 @@
 apiVersion: v2
-appVersion: v0.4.3
+appVersion: v0.22.4
 description: A Helm chart for kubean
 icon: https://avatars.githubusercontent.com/u/108458246
 name: kubean
 type: application
-version: v0.4.3
+version: v0.22.4
 dependencies:
   - name: kubean
-    version: "v0.4.3"
+    version: "v0.22.4"
     repository: "https://kubean-io.github.io/kubean-helm-chart"
 annotations:
   addon.kpanda.io/namespace: kubean-system

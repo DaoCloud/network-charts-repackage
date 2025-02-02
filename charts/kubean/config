@@ -4,7 +4,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://kubean-io.github.io/kubean-helm-chart
 export REPO_NAME=kubean-io
 export CHART_NAME=kubean
-export VERSION=v0.4.3
+export VERSION=v0.22.4
 
 # pr issue
 export UPGRADE_METHOD=pr
