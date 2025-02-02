@@ -1,10 +1,17 @@
 annotations:
   category: CMS
+  images: |
+    - name: apache-exporter
+      image: docker.io/bitnami/apache-exporter:1.0.9-debian-12-r10
+    - name: os-shell
+      image: docker.io/bitnami/os-shell:12-debian-12-r35
+    - name: wordpress
+      image: docker.io/bitnami/wordpress:6.7.1-debian-12-r14
   licenses: Apache-2.0
 apiVersion: v2
-appVersion: 6.1.1
+appVersion: 6.7.1
 description: WordPress is the world's most popular blogging and content management platform. Powerful yet simple, everyone from students to global corporations use it to build beautiful, functional websites.
-home: https://github.com/bitnami/charts/tree/main/bitnami/wordpress
+home: https://bitnami.com
 icon: https://bitnami.com/assets/stacks/wordpress/img/wordpress-stack-220x234.png
 keywords:
   - application
@@ -15,14 +22,13 @@ keywords:
   - web
   - wordpress
 maintainers:
-  - name: Bitnami
+  - name: Broadcom, Inc. All Rights Reserved.
     url: https://github.com/bitnami/charts
 name: wordpress
 sources:
-  - https://github.com/bitnami/containers/tree/main/bitnami/wordpress
-  - https://wordpress.org/
-version: 15.2.39
+  - https://github.com/bitnami/charts/tree/main/bitnami/wordpress
+version: 24.1.9
 dependencies:
   - name: wordpress
-    version: "15.2.39"
+    version: "24.1.9"
     repository: "https://charts.bitnami.com/bitnami"
