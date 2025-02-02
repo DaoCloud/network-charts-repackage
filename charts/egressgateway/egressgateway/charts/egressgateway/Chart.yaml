@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 0.6.0
+appVersion: 0.6.1
 description: egressgateway
 home: https://spidernet-io.github.io/agent
 keywords:
@@ -12,4 +12,4 @@ name: egressgateway
 sources:
 - https://github.com/spidernet-io/egressgateway
 type: application
-version: 0.6.0
+version: 0.6.1
