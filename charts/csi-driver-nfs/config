@@ -5,7 +5,7 @@ export USE_OPENSOURCE_CHART=false
 export REPO_URL=https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
 export REPO_NAME=csi-driver-nfs
 export CHART_NAME=csi-driver-nfs
-export VERSION=v4.9.0
+export VERSION=v4.10.0
 
 # pr, issue, none
 
